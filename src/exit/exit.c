@@ -26,8 +26,10 @@ weak_alias(libc_exit_fini, __libc_exit_fini);
 
 _Noreturn void exit(int code)
 {
+    // we have to call stdio_exit before __funcs_on_exit, because __funcs_on_exit destroys the M³
+    // objects that are used as a backend for stdio.
+	__stdio_exit();
 	__funcs_on_exit();
 	__libc_exit_fini();
-	__stdio_exit();
 	_Exit(code);
 }
