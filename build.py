@@ -52,8 +52,7 @@ def build(gen, env):
 
     # files that we only want to have in the full C library
     files  = env.glob('src/ctype/*.c')
-    #files += ['src/env/__libc_start_main.c']
-    files += ['src/errno/strerror.c']
+    files += env.glob('src/errno/*.c')
     files += ['src/exit/assert.c']
     files += env.glob('src/dirent/*.c')
     files += env.glob('src/fcntl/*.c')
@@ -85,7 +84,7 @@ def build(gen, env):
     simple_files += ['src/internal/libc.c']
     simple_files += env.glob('src/string/*.c')
     simple_files += env.glob('src/string/' + isa + '/*')
-    simple_files += ['m3/debug.cc', 'm3/errno.c', 'm3/init.c', 'm3/lock.c', 'm3/exit.cc']
+    simple_files += ['m3/debug.cc', 'm3/init.c', 'm3/lock.c', 'm3/pthread.c', 'm3/exit.cc']
     simple_objs = env.objs(gen, simple_files)
 
     # simple C library without dependencies (but also no stdio, etc.)
