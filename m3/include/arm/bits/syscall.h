@@ -798,3 +798,6 @@
 #define SYS_pidfd_getfd	438
 #define SYS_faccessat2		439
 #define SYS_process_madvise	440
+
+// let's pretend that ARM Linux has this call to avoid having to implement statx
+#define SYS_fstatat 441

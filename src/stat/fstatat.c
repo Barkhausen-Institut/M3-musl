@@ -113,7 +113,8 @@ int fstatat(int fd, const char *restrict path, struct stat *restrict st, int fla
 {
 	int ret;
 #ifdef SYS_fstatat
-	if (sizeof((struct kstat){0}.st_atime_sec) < sizeof(time_t)) {
+	// don't call statx to avoid that we have to implement it
+	if (0 && sizeof((struct kstat){0}.st_atime_sec) < sizeof(time_t)) {
 		ret = fstatat_statx(fd, path, st, flag);
 		if (ret!=-ENOSYS) return __syscall_ret(ret);
 	}

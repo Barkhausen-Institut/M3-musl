@@ -52,6 +52,10 @@ def build(gen, env):
 
     # files that we only want to have in the full C library
     files  = env.glob('src/ctype/*.c')
+    files += [
+        'src/env/clearenv.c', 'src/env/getenv.c', 'src/env/putenv.c',
+        'src/env/setenv.c', 'src/env/unsetenv.c'
+    ]
     files += env.glob('src/errno/*.c')
     files += ['src/exit/assert.c']
     files += env.glob('src/dirent/*.c')
@@ -67,6 +71,7 @@ def build(gen, env):
     files += env.glob('src/prng/*.c')
     files += env.glob('src/regex/*.c')
     files += env.glob('src/search/*.c')
+    files += env.glob('src/select/*.c')
     files += env.glob('src/setjmp/*.c')
     files += env.glob('src/setjmp/' + isa + '/*')
     files += env.glob('src/stat/*.c')
@@ -75,7 +80,7 @@ def build(gen, env):
     files += env.glob('src/temp/*.c')
     files += env.glob('src/time/*.c')
     files += env.glob('src/unistd/*.c')
-    files += ['m3/file.cc', 'm3/syscall.cc']
+    files += ['m3/dir.cc', 'm3/file.cc', 'm3/syscall.cc']
 
     # files we want to have for bare-metal components
     simple_files  = ['src/env/__environ.c']

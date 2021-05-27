@@ -1,39 +1,34 @@
 #include <base/Common.h>
 #include <m3/pes/VPE.h>
+#include <m3/vfs/Dir.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/VFS.h>
 #include <fs/internal.h>
 
+#define _GNU_SOURCE
 #include <sys/uio.h>
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 
-static int __m3_posix_errno(int m3_error) {
-    switch(m3_error) {
-        case m3::Errors::NONE: return 0;
-        case m3::Errors::INV_ARGS: return EINVAL;
-        case m3::Errors::OUT_OF_MEM: return ENOMEM;
-        case m3::Errors::NO_SUCH_FILE: return ENOENT;
-        case m3::Errors::NOT_SUP: return ENOTSUP;
-        case m3::Errors::NO_SPACE: return ENOSPC;
-        case m3::Errors::EXISTS: return EEXIST;
-        case m3::Errors::XFS_LINK: return EXDEV;
-        case m3::Errors::DIR_NOT_EMPTY: return ENOTEMPTY;
-        case m3::Errors::IS_DIR: return EISDIR;
-        case m3::Errors::IS_NO_DIR: return ENOTDIR;
-        case m3::Errors::TIMEOUT: return ETIMEDOUT;
-        default: return ENOSYS;
-    }
-}
+EXTERN_C int __m3_posix_errno(int m3_error);
+EXTERN_C void __m3_closedir(int fd);
 
 EXTERN_C int __m3_openat(int, const char *pathname, int flags, mode_t) {
-    int m3_flags = 0;
-    switch(flags & O_RDWR) {
-        case O_RDONLY: m3_flags = m3::FILE_R; break;
-        case O_WRONLY: m3_flags = m3::FILE_W; break;
-        case O_RDWR: m3_flags = m3::FILE_RW; break;
-    }
+    int m3_flags;
+    if(flags & O_WRONLY)
+        m3_flags = m3::FILE_W;
+    else if(flags & O_RDWR)
+        m3_flags = m3::FILE_RW;
+    else
+        m3_flags = m3::FILE_R;
+    if(flags & O_CREAT)
+        m3_flags |= m3::FILE_CREATE;
+    if(flags & O_TRUNC)
+        m3_flags |= m3::FILE_TRUNC;
+    if(flags & O_APPEND)
+        m3_flags |= m3::FILE_APPEND;
 
     try {
         return m3::VFS::open(pathname, m3_flags);
@@ -93,7 +88,64 @@ EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count) {
     }
 }
 
+EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence) {
+    static_assert(SEEK_SET == M3FS_SEEK_SET, "SEEK_SET mismatch");
+    static_assert(SEEK_CUR == M3FS_SEEK_CUR, "SEEK_CUR mismatch");
+    static_assert(SEEK_END == M3FS_SEEK_END, "SEEK_END mismatch");
+
+    auto file = m3::VPE::self().fds()->get(fd);
+    if(!file)
+        return -EBADF;
+
+    try {
+        return static_cast<off_t>(file->seek(static_cast<size_t>(offset), whence));
+    }
+    catch(const m3::Exception &e) {
+        return -__m3_posix_errno(e.code());
+    }
+}
+
 EXTERN_C int __m3_close(int fd) {
+    __m3_closedir(fd);
     m3::VPE::self().fds()->remove(fd);
     return 0;
+}
+
+EXTERN_C int __m3_fcntl(int, int cmd, ... /* arg */ ) {
+    switch(cmd) {
+        // pretend that we support file locking
+        case F_SETLK: return 0;
+
+        default: return -ENOSYS;
+    }
+}
+
+EXTERN_C int __m3_faccessat(int dirfd, const char *pathname, int mode, int) {
+    int oflags;
+    if(mode == R_OK || mode == F_OK)
+        oflags = O_RDONLY;
+    else if(mode == W_OK)
+        oflags = O_WRONLY;
+    else
+        oflags = O_RDWR;
+
+    // TODO provide a more efficient implementation
+    int fd = __m3_openat(dirfd, pathname, oflags, 0);
+    if(fd >= 0)
+        __m3_close(fd);
+    return fd < 0 ? fd : 0;
+}
+
+EXTERN_C int __m3_fsync(int fd) {
+    auto file = m3::VPE::self().fds()->get(fd);
+    if(!file)
+        return -EBADF;
+
+    try {
+        file->sync();
+        return 0;
+    }
+    catch(const m3::Exception &e) {
+        return -__m3_posix_errno(e.code());
+    }
 }
