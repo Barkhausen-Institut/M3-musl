@@ -48,28 +48,22 @@ EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf) {
     if(!file)
         return -EBADF;
 
-    try {
-        m3::FileInfo info;
-        file->stat(info);
-        translate_stat(info, statbuf);
-        return 0;
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    m3::FileInfo info;
+    m3::Errors::Code res = file->try_stat(info);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
+    translate_stat(info, statbuf);
+    return 0;
 }
 
 EXTERN_C int __m3_fstatat(int, const char *pathname,
                           struct kstat *statbuf, int) {
-    try {
-        m3::FileInfo info;
-        m3::VFS::stat(pathname, info);
-        translate_stat(info, statbuf);
-        return 0;
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    m3::FileInfo info;
+    m3::Errors::Code res = m3::VFS::try_stat(pathname, info);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
+    translate_stat(info, statbuf);
+    return 0;
 }
 
 EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
@@ -131,37 +125,19 @@ EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
 }
 
 EXTERN_C int __m3_mkdirat(int, const char *pathname, mode_t mode) {
-    try {
-        m3::VFS::mkdir(pathname, mode);
-        return 0;
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    return -__m3_posix_errno(m3::VFS::try_mkdir(pathname, mode));
 }
 
 EXTERN_C int __m3_renameat2(int, const char *oldpath,
                             int, const char *newpath, unsigned int) {
-    try {
-        m3::VFS::rename(oldpath, newpath);
-        return 0;
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    return -__m3_posix_errno(m3::VFS::try_rename(oldpath, newpath));
 }
 
 EXTERN_C int __m3_unlinkat(int, const char *pathname, int flags) {
-    try {
-        if(flags & AT_REMOVEDIR)
-            m3::VFS::rmdir(pathname);
-        else
-            m3::VFS::unlink(pathname);
-        return 0;
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    if(flags & AT_REMOVEDIR)
+        return -__m3_posix_errno(m3::VFS::try_rmdir(pathname));
+    else
+        return -__m3_posix_errno(m3::VFS::try_unlink(pathname));
 }
 
 EXTERN_C void __m3_closedir(int fd) {
