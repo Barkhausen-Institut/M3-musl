@@ -8,6 +8,73 @@ extern "C" {
 #include <errno.h>
 }
 
+struct SyscallTraceEntry {
+    long number;
+    cycles_t start;
+    cycles_t end;
+};
+
+static SyscallTraceEntry *syscall_trace;
+static size_t syscall_trace_pos;
+static size_t syscall_trace_size;
+
+static const char *syscall_name(long no) {
+    switch(no) {
+#if defined(SYS_open)
+        case SYS_open:
+#endif
+        case SYS_openat:            return "open";
+        case SYS_read:              return "read";
+        case SYS_write:             return "write";
+        case SYS_writev:            return "writev";
+#if defined(SYS__llseek)
+        case SYS__llseek:
+#endif
+        case SYS_lseek:             return "lseek";
+        case SYS_close:             return "close";
+#if defined(SYS_fcntl64)
+        case SYS_fcntl64:
+#endif
+        case SYS_fcntl:             return "fcntl";
+#if defined(SYS_access)
+        case SYS_access:
+#endif
+        case SYS_faccessat:         return "faccessat";
+        case SYS_fsync:             return "fsync";
+#if defined(SYS_fstat64)
+        case SYS_fstat64:
+#endif
+        case SYS_fstat:             return "fstat";
+#if defined(SYS_stat)
+        case SYS_stat:              return "stat";
+#endif
+#if defined(SYS_stat64)
+      case SYS_stat64:              return "stat";
+#endif
+#if defined(SYS_fstatat)
+        case SYS_fstatat:           return "stat";
+#endif
+        case SYS_getdents64:        return "getdents64";
+#if defined(SYS_mkdir)
+        case SYS_mkdir:
+#endif
+        case SYS_mkdirat:           return "mkdirat";
+#if defined(SYS_rmdir)
+        case SYS_rmdir:             return "rmdir";
+#endif
+#if defined(SYS_rename)
+        case SYS_rename:
+#endif
+        case SYS_renameat2:         return "rename";
+#if defined(SYS_unlink)
+        case SYS_unlink:
+#endif
+        case SYS_unlinkat:          return "unlink";
+
+        default:                    return "<unknown>";
+    }
+}
+
 EXTERN_C int __m3_openat(int dirfd, const char *pathname, int flags, mode_t mode);
 EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count);
 EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count);
@@ -47,90 +114,123 @@ EXTERN_C int __m3_posix_errno(int m3_error) {
     }
 }
 
+EXTERN_C void __m3_sysc_trace(bool enable, size_t max) {
+    if(enable) {
+        syscall_trace = new SyscallTraceEntry[max]();
+        syscall_trace_pos = 0;
+        syscall_trace_size = max;
+    }
+    else {
+        char buf[128];
+        for(size_t i = 0; i < syscall_trace_pos; ++i) {
+            m3::OStringStream os(buf, sizeof(buf));
+            os << "[" << m3::fmt(i, 3) << "] " << syscall_name(syscall_trace[i].number)
+                                       << " (" << syscall_trace[i].number << ")"
+                                       << " " << m3::fmt(syscall_trace[i].start, "0", 11)
+                                       << " " << m3::fmt(syscall_trace[i].end, "0", 11)
+                                       << "\n";
+            m3::Machine::write(os.str(), os.length());
+        }
+
+        delete[] syscall_trace;
+        syscall_trace = nullptr;
+        syscall_trace_pos = 0;
+        syscall_trace_size = 0;
+    }
+}
+
 EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f) {
+    long res = -ENOSYS;
+
+    if(syscall_trace_pos < syscall_trace_size) {
+        syscall_trace[syscall_trace_pos].number = n;
+        syscall_trace[syscall_trace_pos].start = m3::CPU::elapsed_cycles();
+    }
+
     switch(n) {
 #if defined(SYS_open)
-        case SYS_open:              return __m3_openat(-1, (const char*)a, b, (mode_t)c);
+        case SYS_open:              res = __m3_openat(-1, (const char*)a, b, (mode_t)c); break;
 #endif
-        case SYS_openat:            return __m3_openat(a, (const char *)b, c, (mode_t)d);
-        case SYS_read:              return __m3_read(a, (void*)b, (size_t)c);
-        case SYS_write:             return __m3_write(a, (const void*)b, (size_t)c);
-        case SYS_writev:            return __m3_writev(a, (const struct iovec*)b, c);
-        case SYS_lseek:             return __m3_lseek(a, b, c);
+        case SYS_openat:            res = __m3_openat(a, (const char *)b, c, (mode_t)d); break;
+        case SYS_read:              res = __m3_read(a, (void*)b, (size_t)c); break;
+        case SYS_write:             res = __m3_write(a, (const void*)b, (size_t)c); break;
+        case SYS_writev:            res = __m3_writev(a, (const struct iovec*)b, c); break;
+        case SYS_lseek:             res = __m3_lseek(a, b, c); break;
 #if defined(SYS__llseek)
         case SYS__llseek: {
             assert(b == 0);
-            long res = __m3_lseek(a, c, e);
+            res = __m3_lseek(a, c, e);
             *(off_t*)d = res;
-            return res;
+            break;
         }
 #endif
-        case SYS_close:             return __m3_close(a);
+        case SYS_close:             res = __m3_close(a); break;
 
-        case SYS_fcntl:             return __m3_fcntl(a, b);
+        case SYS_fcntl:             res = __m3_fcntl(a, b); break;
 #if defined(SYS_fcntl64)
-        case SYS_fcntl64:           return __m3_fcntl(a, b);
+        case SYS_fcntl64:           res = __m3_fcntl(a, b); break;
 #endif
 #if defined(SYS_access)
-        case SYS_access:            return __m3_faccessat(-1, (const char*)a, b, 0);
+        case SYS_access:            res = __m3_faccessat(-1, (const char*)a, b, 0); break;
 #endif
-        case SYS_faccessat:         return __m3_faccessat(a, (const char*)b, c, d);
-        case SYS_fsync:             return __m3_fsync(a);
+        case SYS_faccessat:         res = __m3_faccessat(a, (const char*)b, c, d); break;
+        case SYS_fsync:             res = __m3_fsync(a); break;
 
-        case SYS_fstat:             return __m3_fstat(a, (struct kstat*)b);
+        case SYS_fstat:             res = __m3_fstat(a, (struct kstat*)b); break;
 #if defined(SYS_fstat64)
-        case SYS_fstat64:           return __m3_fstat(a, (struct kstat*)b);
+        case SYS_fstat64:           res = __m3_fstat(a, (struct kstat*)b); break;
 #endif
 #if defined(SYS_stat)
-        case SYS_stat:              return __m3_fstatat(-1, (const char*)a, (struct kstat*)b, 0);
+        case SYS_stat:              res = __m3_fstatat(-1, (const char*)a, (struct kstat*)b, 0); break;
 #endif
 #if defined(SYS_stat64)
-      case SYS_stat64:              return __m3_fstatat(-1, (const char*)a, (struct kstat*)b, 0);
+      case SYS_stat64:              res = __m3_fstatat(-1, (const char*)a, (struct kstat*)b, 0); break;
 #endif
 #if defined(SYS_fstatat)
-        case SYS_fstatat:           return __m3_fstatat(a, (const char*)b, (struct kstat*)c, d);
+        case SYS_fstatat:           res = __m3_fstatat(a, (const char*)b, (struct kstat*)c, d); break;
 #endif
-        case SYS_getdents64:        return __m3_getdents64(a, (void*)b, (size_t)c);
+        case SYS_getdents64:        res = __m3_getdents64(a, (void*)b, (size_t)c); break;
 #if defined(SYS_mkdir)
-        case SYS_mkdir:             return __m3_mkdirat(-1, (const char*)a, (mode_t)b);
+        case SYS_mkdir:             res = __m3_mkdirat(-1, (const char*)a, (mode_t)b); break;
 #endif
-        case SYS_mkdirat:           return __m3_mkdirat(a, (const char*)b, (mode_t)c);
+        case SYS_mkdirat:           res = __m3_mkdirat(a, (const char*)b, (mode_t)c); break;
 #if defined(SYS_rmdir)
-        case SYS_rmdir:             return __m3_unlinkat(-1, (const char*)a, AT_REMOVEDIR);
+        case SYS_rmdir:             res = __m3_unlinkat(-1, (const char*)a, AT_REMOVEDIR); break;
 #endif
 #if defined(SYS_rename)
-        case SYS_rename:            return __m3_renameat2(-1, (const char*)a, -1, (const char*)b, 0);
+        case SYS_rename:            res = __m3_renameat2(-1, (const char*)a, -1, (const char*)b, 0); break;
 #endif
-        case SYS_renameat2:         return __m3_renameat2(a, (const char*)b, c, (const char*)d, (unsigned)e);
+        case SYS_renameat2:         res = __m3_renameat2(a, (const char*)b, c, (const char*)d, (unsigned)e); break;
 #if defined(SYS_unlink)
-        case SYS_unlink:            return __m3_unlinkat(-1, (const char*)a, 0);
+        case SYS_unlink:            res = __m3_unlinkat(-1, (const char*)a, 0); break;
 #endif
-        case SYS_unlinkat:          return __m3_unlinkat(a, (const char*)b, c);
+        case SYS_unlinkat:          res = __m3_unlinkat(a, (const char*)b, c); break;
 
         // deliberately ignored
-        case SYS_ioctl:             return -ENOSYS;
-        case SYS_prlimit64:         return -ENOSYS;
+        case SYS_ioctl:
+        case SYS_prlimit64:
 #if defined(SYS_getrlimit)
-        case SYS_getrlimit:         return -ENOSYS;
+        case SYS_getrlimit:
 #endif
 #if defined(SYS_ugetrlimit)
-        case SYS_ugetrlimit:        return -ENOSYS;
+        case SYS_ugetrlimit:
 #endif
 #if defined(SYS_clock_gettime)
-        case SYS_clock_gettime:     return -ENOSYS;
+        case SYS_clock_gettime:
 #endif
 #if defined(SYS_clock_gettime32)
-        case SYS_clock_gettime32:   return -ENOSYS;
+        case SYS_clock_gettime32:
 #endif
 #if defined(SYS_clock_gettime64)
-        case SYS_clock_gettime64:   return -ENOSYS;
+        case SYS_clock_gettime64:
 #endif
 #if defined(SYS_gettimeofday)
-        case SYS_gettimeofday:      return -ENOSYS;
+        case SYS_gettimeofday:
 #endif
 #if defined(SYS_gettimeofday_time32)
-        case SYS_gettimeofday_time32: return -ENOSYS;
+        case SYS_gettimeofday_time32:
 #endif
+            break;
 
         default: {
             char buf[128];
@@ -140,9 +240,16 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
                                      << d << ", " << e << ", " << f
                                      << ")\n";
             m3::Machine::write(os.str(), os.length());
-            return -ENOSYS;
+            break;
         }
     }
+
+    if(syscall_trace_pos < syscall_trace_size) {
+        syscall_trace[syscall_trace_pos].end = m3::CPU::elapsed_cycles();
+        syscall_trace_pos++;
+    }
+
+    return res;
 }
 
 EXTERN_C long __syscall_cp(long n, long a, long b, long c, long d, long e, long f) {
