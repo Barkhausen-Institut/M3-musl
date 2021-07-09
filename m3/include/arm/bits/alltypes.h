@@ -100,7 +100,7 @@ typedef signed short    int16_t;
 #endif
 
 #if defined(__NEED_int32_t) && !defined(__DEFINED_int32_t)
-typedef signed int      int32_t;
+typedef signed long      int32_t;
 #define __DEFINED_int32_t
 #endif
 
@@ -125,7 +125,7 @@ typedef unsigned short  uint16_t;
 #endif
 
 #if defined(__NEED_uint32_t) && !defined(__DEFINED_uint32_t)
-typedef unsigned int    uint32_t;
+typedef unsigned long    uint32_t;
 #define __DEFINED_uint32_t
 #endif
 
