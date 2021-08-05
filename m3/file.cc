@@ -51,6 +51,32 @@ EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count) {
     }
 }
 
+EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt) {
+    auto file = m3::VPE::self().fds()->get(fildes);
+    if(!file)
+        return -EBADF;
+
+    ssize_t total = 0;
+    for(int i = 0; i < iovcnt; ++i) {
+        char *base = static_cast<char*>(iov[i].iov_base);
+        size_t rem = iov[i].iov_len;
+        while(rem > 0) {
+            try {
+                size_t amount = file->read(base, rem);
+                if(amount == 0)
+                    return total;
+                rem -= amount;
+                base += amount;
+                total += static_cast<ssize_t>(amount);
+            }
+            catch(const m3::Exception &e) {
+                return -__m3_posix_errno(e.code());
+            }
+        }
+    }
+    return total;
+}
+
 EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
     auto file = m3::VPE::self().fds()->get(fildes);
     if(!file)

@@ -77,6 +77,7 @@ static const char *syscall_name(long no) {
 
 EXTERN_C int __m3_openat(int dirfd, const char *pathname, int flags, mode_t mode);
 EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count);
+EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt);
 EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count);
 EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt);
 EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence);
@@ -153,6 +154,7 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #endif
         case SYS_openat:            res = __m3_openat(a, (const char *)b, c, (mode_t)d); break;
         case SYS_read:              res = __m3_read(a, (void*)b, (size_t)c); break;
+        case SYS_readv:             res = __m3_readv(a, (const struct iovec*)b, c); break;
         case SYS_write:             res = __m3_write(a, (const void*)b, (size_t)c); break;
         case SYS_writev:            res = __m3_writev(a, (const struct iovec*)b, c); break;
         case SYS_lseek:             res = __m3_lseek(a, b, c); break;
