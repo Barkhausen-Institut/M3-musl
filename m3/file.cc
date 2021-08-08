@@ -146,20 +146,18 @@ EXTERN_C int __m3_fcntl(int, int cmd, ... /* arg */ ) {
     }
 }
 
-EXTERN_C int __m3_faccessat(int dirfd, const char *pathname, int mode, int) {
-    int oflags;
-    if(mode == R_OK || mode == F_OK)
-        oflags = O_RDONLY;
-    else if(mode == W_OK)
-        oflags = O_WRONLY;
+EXTERN_C int __m3_faccessat(int, const char *pathname, int mode, int) {
+    m3::FileInfo info;
+    m3::Errors::Code res = m3::VFS::try_stat(pathname, info);
+    if(res == m3::Errors::NONE) {
+        if(mode == R_OK || mode == F_OK)
+            return (info.mode & M3FS_MODE_READ) != 0;
+        if(mode == W_OK)
+            return (info.mode & M3FS_MODE_WRITE) != 0;
+        return (info.mode & M3FS_MODE_READ) != 0 && (info.mode & M3FS_MODE_WRITE) != 0;
+    }
     else
-        oflags = O_RDWR;
-
-    // TODO provide a more efficient implementation
-    int fd = __m3_openat(dirfd, pathname, oflags, 0);
-    if(fd >= 0)
-        __m3_close(fd);
-    return fd < 0 ? fd : 0;
+        return -__m3_posix_errno(res);
 }
 
 EXTERN_C int __m3_fsync(int fd) {
