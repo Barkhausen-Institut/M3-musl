@@ -71,6 +71,9 @@ static const char *syscall_name(long no) {
 #endif
         case SYS_unlinkat:          return "unlink";
 
+        case 0xFFFF:                return "receive";
+        case 0xFFFE:                return "send";
+
         default:                    return "<unknown>";
     }
 }
