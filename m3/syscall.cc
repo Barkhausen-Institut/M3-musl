@@ -117,7 +117,8 @@ EXTERN_C int __m3_posix_errno(int m3_error) {
 
 EXTERN_C void __m3_sysc_trace(bool enable, size_t max) {
     if(enable) {
-        syscall_trace = new SyscallTraceEntry[max]();
+        if(!syscall_trace)
+            syscall_trace = new SyscallTraceEntry[max]();
         syscall_trace_pos = 0;
         syscall_trace_size = max;
     }
@@ -140,13 +141,24 @@ EXTERN_C void __m3_sysc_trace(bool enable, size_t max) {
     }
 }
 
-EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f) {
-    long res = -ENOSYS;
-
+EXTERN_C void __m3_sysc_trace_start(long n) {
     if(syscall_trace_pos < syscall_trace_size) {
         syscall_trace[syscall_trace_pos].number = n;
         syscall_trace[syscall_trace_pos].start = m3::CPU::elapsed_cycles();
     }
+}
+
+EXTERN_C void __m3_sysc_trace_stop() {
+    if(syscall_trace_pos < syscall_trace_size) {
+        syscall_trace[syscall_trace_pos].end = m3::CPU::elapsed_cycles();
+        syscall_trace_pos++;
+    }
+}
+
+EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f) {
+    long res = -ENOSYS;
+
+    __m3_sysc_trace_start(n);
 
     switch(n) {
 #if defined(SYS_open)
@@ -246,10 +258,7 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         }
     }
 
-    if(syscall_trace_pos < syscall_trace_size) {
-        syscall_trace[syscall_trace_pos].end = m3::CPU::elapsed_cycles();
-        syscall_trace_pos++;
-    }
+    __m3_sysc_trace_stop();
 
     return res;
 }
