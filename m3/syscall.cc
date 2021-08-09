@@ -10,13 +10,14 @@ extern "C" {
 
 struct SyscallTraceEntry {
     long number;
-    cycles_t start;
-    cycles_t end;
+    uint64_t start;
+    uint64_t end;
 };
 
 static SyscallTraceEntry *syscall_trace;
 static size_t syscall_trace_pos;
 static size_t syscall_trace_size;
+static uint64_t system_time;
 
 static const char *syscall_name(long no) {
     switch(no) {
@@ -124,6 +125,7 @@ EXTERN_C void __m3_sysc_trace(bool enable, size_t max) {
             syscall_trace = new SyscallTraceEntry[max]();
         syscall_trace_pos = 0;
         syscall_trace_size = max;
+        system_time = 0;
     }
     else {
         char buf[128];
@@ -141,20 +143,26 @@ EXTERN_C void __m3_sysc_trace(bool enable, size_t max) {
         syscall_trace = nullptr;
         syscall_trace_pos = 0;
         syscall_trace_size = 0;
+        system_time = 0;
     }
+}
+
+EXTERN_C uint64_t __m3_sysc_systime() {
+    return system_time;
 }
 
 EXTERN_C void __m3_sysc_trace_start(long n) {
     if(syscall_trace_pos < syscall_trace_size) {
         syscall_trace[syscall_trace_pos].number = n;
-        syscall_trace[syscall_trace_pos].start = m3::CPU::elapsed_cycles();
+        syscall_trace[syscall_trace_pos].start = m3::TCU::get().nanotime();
     }
 }
 
 EXTERN_C void __m3_sysc_trace_stop() {
     if(syscall_trace_pos < syscall_trace_size) {
-        syscall_trace[syscall_trace_pos].end = m3::CPU::elapsed_cycles();
+        syscall_trace[syscall_trace_pos].end = m3::TCU::get().nanotime();
         syscall_trace_pos++;
+        system_time += syscall_trace[syscall_trace_pos].end - syscall_trace[syscall_trace_pos].start;
     }
 }
 
