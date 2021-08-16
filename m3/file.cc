@@ -151,10 +151,10 @@ EXTERN_C int __m3_faccessat(int, const char *pathname, int mode, int) {
     m3::Errors::Code res = m3::VFS::try_stat(pathname, info);
     if(res == m3::Errors::NONE) {
         if(mode == R_OK || mode == F_OK)
-            return (info.mode & M3FS_MODE_READ) != 0;
+            return (info.mode & M3FS_MODE_READ) != 0 ? 0 : EPERM;
         if(mode == W_OK)
-            return (info.mode & M3FS_MODE_WRITE) != 0;
-        return (info.mode & M3FS_MODE_READ) != 0 && (info.mode & M3FS_MODE_WRITE) != 0;
+            return (info.mode & M3FS_MODE_WRITE) != 0 ? 0 : EPERM;
+        return (info.mode & M3FS_MODE_READ) != 0 && (info.mode & M3FS_MODE_WRITE) != 0 ? 0 : EPERM;
     }
     else
         return -__m3_posix_errno(res);
