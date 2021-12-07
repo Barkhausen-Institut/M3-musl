@@ -1,5 +1,6 @@
 #include <base/Common.h>
 #include <base/log/Lib.h>
+#include <base/time/Instant.h>
 
 extern "C" {
 #include <features.h>
@@ -9,15 +10,18 @@ extern "C" {
 }
 
 struct SyscallTraceEntry {
+    explicit SyscallTraceEntry() : number(), start(m3::TimeInstant::now()), end(m3::TimeInstant::now()) {
+    }
+
     long number;
-    uint64_t start;
-    uint64_t end;
+    m3::TimeInstant start;
+    m3::TimeInstant end;
 };
 
 static SyscallTraceEntry *syscall_trace;
 static size_t syscall_trace_pos;
 static size_t syscall_trace_size;
-static uint64_t system_time;
+static m3::TimeDuration system_time;
 
 static const char *syscall_name(long no) {
     switch(no) {
@@ -125,7 +129,7 @@ EXTERN_C void __m3_sysc_trace(bool enable, size_t max) {
             syscall_trace = new SyscallTraceEntry[max]();
         syscall_trace_pos = 0;
         syscall_trace_size = max;
-        system_time = 0;
+        system_time = m3::TimeDuration::ZERO;
     }
     else {
         char buf[128];
@@ -133,8 +137,8 @@ EXTERN_C void __m3_sysc_trace(bool enable, size_t max) {
             m3::OStringStream os(buf, sizeof(buf));
             os << "[" << m3::fmt(i, 3) << "] " << syscall_name(syscall_trace[i].number)
                                        << " (" << syscall_trace[i].number << ")"
-                                       << " " << m3::fmt(syscall_trace[i].start, "0", 11)
-                                       << " " << m3::fmt(syscall_trace[i].end, "0", 11)
+                                       << " " << m3::fmt(syscall_trace[i].start.as_nanos(), "0", 11)
+                                       << " " << m3::fmt(syscall_trace[i].end.as_nanos(), "0", 11)
                                        << "\n";
             m3::Machine::write(os.str(), os.length());
         }
@@ -143,26 +147,26 @@ EXTERN_C void __m3_sysc_trace(bool enable, size_t max) {
         syscall_trace = nullptr;
         syscall_trace_pos = 0;
         syscall_trace_size = 0;
-        system_time = 0;
+        system_time = m3::TimeDuration::ZERO;
     }
 }
 
 EXTERN_C uint64_t __m3_sysc_systime() {
-    return system_time;
+    return system_time.as_nanos();
 }
 
 EXTERN_C void __m3_sysc_trace_start(long n) {
     if(syscall_trace_pos < syscall_trace_size) {
         syscall_trace[syscall_trace_pos].number = n;
-        syscall_trace[syscall_trace_pos].start = m3::TCU::get().nanotime();
+        syscall_trace[syscall_trace_pos].start = m3::TimeInstant::now();
     }
 }
 
 EXTERN_C void __m3_sysc_trace_stop() {
     if(syscall_trace_pos < syscall_trace_size) {
-        syscall_trace[syscall_trace_pos].end = m3::TCU::get().nanotime();
+        syscall_trace[syscall_trace_pos].end = m3::TimeInstant::now();
         syscall_trace_pos++;
-        system_time += syscall_trace[syscall_trace_pos].end - syscall_trace[syscall_trace_pos].start;
+        system_time += syscall_trace[syscall_trace_pos].end.duration_since(syscall_trace[syscall_trace_pos].start);
     }
 }
 
