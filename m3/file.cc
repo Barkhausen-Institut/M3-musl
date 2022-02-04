@@ -39,7 +39,7 @@ EXTERN_C int __m3_openat(int, const char *pathname, int flags, mode_t) {
 }
 
 EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count) {
-    auto file = m3::VPE::self().fds()->get(fd);
+    auto file = m3::VPE::self().files()->get(fd);
     if(!file)
         return -EBADF;
 
@@ -52,7 +52,7 @@ EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count) {
 }
 
 EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt) {
-    auto file = m3::VPE::self().fds()->get(fildes);
+    auto file = m3::VPE::self().files()->get(fildes);
     if(!file)
         return -EBADF;
 
@@ -78,7 +78,7 @@ EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt) {
 }
 
 EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
-    auto file = m3::VPE::self().fds()->get(fildes);
+    auto file = m3::VPE::self().files()->get(fildes);
     if(!file)
         return -EBADF;
 
@@ -102,7 +102,7 @@ EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
 }
 
 EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count) {
-    auto file = m3::VPE::self().fds()->get(fd);
+    auto file = m3::VPE::self().files()->get(fd);
     if(!file)
         return -EBADF;
 
@@ -119,7 +119,7 @@ EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence) {
     static_assert(SEEK_CUR == M3FS_SEEK_CUR, "SEEK_CUR mismatch");
     static_assert(SEEK_END == M3FS_SEEK_END, "SEEK_END mismatch");
 
-    auto file = m3::VPE::self().fds()->get(fd);
+    auto file = m3::VPE::self().files()->get(fd);
     if(!file)
         return -EBADF;
 
@@ -133,7 +133,7 @@ EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence) {
 
 EXTERN_C int __m3_close(int fd) {
     __m3_closedir(fd);
-    m3::VPE::self().fds()->remove(fd);
+    m3::VPE::self().files()->remove(fd);
     return 0;
 }
 
@@ -161,7 +161,7 @@ EXTERN_C int __m3_faccessat(int, const char *pathname, int mode, int) {
 }
 
 EXTERN_C int __m3_fsync(int fd) {
-    auto file = m3::VPE::self().fds()->get(fd);
+    auto file = m3::VPE::self().files()->get(fd);
     if(!file)
         return -EBADF;
 

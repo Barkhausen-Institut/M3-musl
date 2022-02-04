@@ -44,7 +44,7 @@ static void translate_stat(m3::FileInfo &info, struct kstat *statbuf) {
 }
 
 EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf) {
-    auto file = m3::VPE::self().fds()->get(fd);
+    auto file = m3::VPE::self().files()->get(fd);
     if(!file)
         return -EBADF;
 
@@ -67,7 +67,7 @@ EXTERN_C int __m3_fstatat(int, const char *pathname,
 }
 
 EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
-    auto file = m3::VPE::self().fds()->get(fd);
+    auto file = m3::VPE::self().files()->get(fd);
     if(!file)
         return -EBADF;
     if(static_cast<size_t>(fd) >= MAX_DIRS)
