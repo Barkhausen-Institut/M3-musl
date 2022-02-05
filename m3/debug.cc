@@ -16,7 +16,7 @@ void debug_new(DebugBuf *db) {
     db->pos = 0;
 #if !defined(__host__)
     debug_puts(db, "[        @");
-    debug_putu(db, m3::env()->pe_id, 16);
+    debug_putu(db, m3::env()->tile_id, 16);
     debug_puts(db, "] ");
 #endif
 }
