@@ -24,6 +24,8 @@ extern "C" {
 #include <errno.h>
 }
 
+#include "intern.h"
+
 struct SyscallTraceEntry {
     explicit SyscallTraceEntry() : number(), start(m3::TimeInstant::now()), end(m3::TimeInstant::now()) {
     }
@@ -97,27 +99,6 @@ static const char *syscall_name(long no) {
         default:                    return "<unknown>";
     }
 }
-
-EXTERN_C int __m3_openat(int dirfd, const char *pathname, int flags, mode_t mode);
-EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count);
-EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt);
-EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count);
-EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt);
-EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence);
-EXTERN_C int __m3_close(int fd);
-
-EXTERN_C int __m3_fcntl(int fd, int cmd, ... /* arg */ );
-EXTERN_C int __m3_faccessat(int dirfd, const char *pathname, int mode, int flags);
-EXTERN_C int __m3_fsync(int fd);
-
-EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf);
-EXTERN_C int __m3_fstatat(int dirfd, const char *pathname,
-                          struct kstat *statbuf, int flags);
-EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count);
-EXTERN_C int __m3_mkdirat(int dirfd, const char *pathname, mode_t mode);
-EXTERN_C int __m3_renameat2(int olddirfd, const char *oldpath, int newdirfd,
-                            const char *newpath, unsigned int flags);
-EXTERN_C int __m3_unlinkat(int dirfd, const char *pathname, int flags);
 
 EXTERN_C int __m3_posix_errno(int m3_error) {
     switch(m3_error) {

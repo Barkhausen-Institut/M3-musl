@@ -29,6 +29,8 @@
 #include <fcntl.h>
 #include <kstat.h>
 
+#include "intern.h"
+
 struct OpenDir {
     m3::Dir *dir;
     m3::Dir::Entry *entry;
@@ -36,8 +38,6 @@ struct OpenDir {
 
 static const size_t MAX_DIRS = 16;
 static OpenDir open_dirs[MAX_DIRS];
-
-EXTERN_C int __m3_posix_errno(int m3_error);
 
 static void translate_stat(m3::FileInfo &info, struct kstat *statbuf) {
     statbuf->st_dev = info.devno;

@@ -27,8 +27,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
-EXTERN_C int __m3_posix_errno(int m3_error);
-EXTERN_C void __m3_closedir(int fd);
+#include "intern.h"
 
 EXTERN_C int __m3_openat(int, const char *pathname, int flags, mode_t) {
     int m3_flags;
