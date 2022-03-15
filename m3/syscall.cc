@@ -20,6 +20,7 @@
 extern "C" {
 #include <features.h>
 #include <bits/syscall.h>
+#include <sys/socket.h>
 #include <fcntl.h>
 #include <errno.h>
 }
@@ -92,6 +93,20 @@ static const char *syscall_name(long no) {
         case SYS_unlink:
 #endif
         case SYS_unlinkat:          return "unlink";
+
+        case SYS_socket:            return "socket";
+        case SYS_connect:           return "connect";
+        case SYS_bind:              return "bind";
+        case SYS_listen:            return "listen";
+        case SYS_accept:            return "accept";
+        case SYS_accept4:           return "accept4";
+        case SYS_sendto:            return "sendto";
+        case SYS_sendmsg:           return "sendmsg";
+        case SYS_recvfrom:          return "recvfrom";
+        case SYS_recvmsg:           return "recvmsg";
+        case SYS_shutdown:          return "shutdown";
+        case SYS_getsockname:       return "getsockname";
+        case SYS_getpeername:       return "getpeername";
 
         case 0xFFFF:                return "receive";
         case 0xFFFE:                return "send";
@@ -230,6 +245,20 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_unlink:            res = __m3_unlinkat(-1, (const char*)a, 0); break;
 #endif
         case SYS_unlinkat:          res = __m3_unlinkat(a, (const char*)b, c); break;
+
+        case SYS_socket:            res = __m3_socket(a, b, c); break;
+        case SYS_bind:              res = __m3_bind(a, (const struct sockaddr*)b, (socklen_t)c); break;
+        case SYS_listen:            res = __m3_listen(a, b); break;
+        case SYS_accept:            res = __m3_accept(a, (struct sockaddr*)b, (socklen_t*)c); break;
+        case SYS_accept4:           res = __m3_accept4(a, (struct sockaddr*)b, (socklen_t*)c, d); break;
+        case SYS_connect:           res = __m3_connect(a, (const struct sockaddr*)b, (socklen_t)c); break;
+        case SYS_sendto:            res = __m3_sendto(a, (const void*)b, (size_t)c, d, (const struct sockaddr*)e, (socklen_t)f); break;
+        case SYS_sendmsg:           res = __m3_sendmsg(a, (const struct msghdr*)b, c); break;
+        case SYS_recvfrom:          res = __m3_recvfrom(a, (void*)b, (size_t)c, d, (struct sockaddr*)e, (socklen_t*)f); break;
+        case SYS_recvmsg:           res = __m3_recvmsg(a, (struct msghdr*)b, c); break;
+        case SYS_shutdown:          res = __m3_shutdown(a, b); break;
+        case SYS_getsockname:       res = __m3_getsockname(a, (struct sockaddr*)b, (socklen_t*)c); break;
+        case SYS_getpeername:       res = __m3_getpeername(a, (struct sockaddr*)b, (socklen_t*)c); break;
 
         // deliberately ignored
         case SYS_ioctl:

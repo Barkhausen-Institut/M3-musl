@@ -30,6 +30,7 @@ def build(gen, env):
         '-Wno-sign-conversion',
         '-Wno-sign-compare',
         '-Wno-unused-value',
+        '-Wno-unused-function',
         '-Wno-implicit-fallthrough',
         '-Wno-missing-attributes',
         '-Wno-missing-braces',
@@ -80,7 +81,7 @@ def build(gen, env):
     files += env.glob('src/temp/*.c')
     files += env.glob('src/time/*.c')
     files += env.glob('src/unistd/*.c')
-    files += ['m3/dir.cc', 'm3/file.cc', 'm3/syscall.cc']
+    files += ['m3/dir.cc', 'm3/file.cc', 'm3/socket.cc', 'm3/syscall.cc']
 
     # files we want to have for bare-metal components
     simple_files  = ['src/env/__environ.c']

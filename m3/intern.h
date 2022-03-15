@@ -42,3 +42,22 @@ EXTERN_C int __m3_renameat2(int olddirfd, const char *oldpath, int newdirfd,
                             const char *newpath, unsigned int flags);
 EXTERN_C int __m3_unlinkat(int dirfd, const char *pathname, int flags);
 EXTERN_C void __m3_closedir(int fd);
+
+EXTERN_C int __m3_socket(int domain, int type, int protocol);
+EXTERN_C int __m3_getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+EXTERN_C int __m3_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+EXTERN_C int __m3_bind(int fd, const struct sockaddr *addr, socklen_t addrlen);
+EXTERN_C int __m3_listen(int sockfd, int backlog);
+EXTERN_C int __m3_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+EXTERN_C int __m3_accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags);
+EXTERN_C int __m3_connect(int fd, const struct sockaddr *addr, socklen_t addrlen);
+EXTERN_C ssize_t __m3_sendto(int sockfd, const void *buf, size_t len, int flags,
+                             const struct sockaddr *dest_addr, socklen_t addrlen);
+EXTERN_C ssize_t __m3_sendmsg(int sockfd, const struct msghdr *msg, int flags);
+EXTERN_C ssize_t __m3_socket_write(int fd, const void *data, size_t len);
+EXTERN_C ssize_t __m3_recvfrom(int sockfd, void *buf, size_t len, int flags,
+                               struct sockaddr *src_addr, socklen_t *addrlen);
+EXTERN_C ssize_t __m3_recvmsg(int sockfd, struct msghdr *msg, int flags);
+EXTERN_C ssize_t __m3_socket_read(int fd, void *data, size_t len);
+EXTERN_C int __m3_shutdown(int sockfd, int how);
+EXTERN_C int __m3_socket_close(int fd);
