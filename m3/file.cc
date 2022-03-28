@@ -61,7 +61,10 @@ EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count) {
         return -EBADF;
 
     try {
-        return static_cast<ssize_t>(file->read(buf, count));
+        ssize_t res = file->read(buf, count);
+        if(res == -1)
+            return -EWOULDBLOCK;
+        return res;
     }
     catch(const m3::Exception &e) {
         return -__m3_posix_errno(e.code());
@@ -79,12 +82,14 @@ EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt) {
         size_t rem = iov[i].iov_len;
         while(rem > 0) {
             try {
-                size_t amount = file->read(base, rem);
+                ssize_t amount = file->read(base, rem);
+                if(amount == -1 && total == 0)
+                    return -EWOULDBLOCK;
                 if(amount == 0)
                     return total;
-                rem -= amount;
+                rem -= static_cast<size_t>(amount);
                 base += amount;
-                total += static_cast<ssize_t>(amount);
+                total += amount;
             }
             catch(const m3::Exception &e) {
                 return -__m3_posix_errno(e.code());
@@ -105,10 +110,14 @@ EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
         size_t rem = iov[i].iov_len;
         while(rem > 0) {
             try {
-                size_t amount = file->write(base, rem);
-                rem -= amount;
+                ssize_t amount = file->write(base, rem);
+                if(amount == -1 && total == 0)
+                    return -EWOULDBLOCK;
+                if(amount == 0)
+                    return total;
+                rem -= static_cast<size_t>(amount);
                 base += amount;
-                total += static_cast<ssize_t>(amount);
+                total += amount;
             }
             catch(const m3::Exception &e) {
                 return -__m3_posix_errno(e.code());
@@ -127,7 +136,10 @@ EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count) {
         return -EBADF;
 
     try {
-        return static_cast<ssize_t>(file->write(buf, count));
+        ssize_t res = file->write(buf, count);
+        if(res == -1)
+            return -EWOULDBLOCK;
+        return res;
     }
     catch(const m3::Exception &e) {
         return -__m3_posix_errno(e.code());
