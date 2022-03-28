@@ -18,6 +18,7 @@
 #include <base/Common.h>
 
 #include <sys/socket.h>
+#include <fcntl.h>
 
 EXTERN_C int __m3_posix_errno(int m3_error);
 
@@ -61,3 +62,9 @@ EXTERN_C ssize_t __m3_recvmsg(int sockfd, struct msghdr *msg, int flags);
 EXTERN_C ssize_t __m3_socket_read(int fd, void *data, size_t len);
 EXTERN_C int __m3_shutdown(int sockfd, int how);
 EXTERN_C int __m3_socket_close(int fd);
+
+EXTERN_C int __m3_getpid();
+EXTERN_C int __m3_getuid();
+EXTERN_C int __m3_geteuid();
+EXTERN_C int __m3_getgid();
+EXTERN_C int __m3_getegid();

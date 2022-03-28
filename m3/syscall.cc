@@ -108,6 +108,12 @@ static const char *syscall_name(long no) {
         case SYS_getsockname:       return "getsockname";
         case SYS_getpeername:       return "getpeername";
 
+        case SYS_getpid:            return "getpid";
+        case SYS_getuid:            return "getuid";
+        case SYS_geteuid:           return "geteuid";
+        case SYS_getgid:            return "getgid";
+        case SYS_getegid:           return "getegid";
+
         case 0xFFFF:                return "receive";
         case 0xFFFE:                return "send";
 
@@ -259,6 +265,12 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_shutdown:          res = __m3_shutdown(a, b); break;
         case SYS_getsockname:       res = __m3_getsockname(a, (struct sockaddr*)b, (socklen_t*)c); break;
         case SYS_getpeername:       res = __m3_getpeername(a, (struct sockaddr*)b, (socklen_t*)c); break;
+
+        case SYS_getpid:            res = __m3_getpid(); break;
+        case SYS_getuid:            res = __m3_getuid(); break;
+        case SYS_geteuid:           res = __m3_geteuid(); break;
+        case SYS_getgid:            res = __m3_getgid(); break;
+        case SYS_getegid:           res = __m3_getegid(); break;
 
         // deliberately ignored
         case SYS_ioctl:
