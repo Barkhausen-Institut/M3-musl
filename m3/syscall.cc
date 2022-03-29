@@ -27,6 +27,8 @@ extern "C" {
 
 #include "intern.h"
 
+#define PRINT_SYSCALLS 0
+
 struct SyscallTraceEntry {
     explicit SyscallTraceEntry() : number(), start(m3::TimeInstant::now()), end(m3::TimeInstant::now()) {
     }
@@ -139,7 +141,12 @@ static const char *syscall_name(long no) {
         case 0xFFFF:                return "receive";
         case 0xFFFE:                return "send";
 
-        default:                    return "<unknown>";
+        default: {
+            static char tmp[32];
+            m3::OStringStream os(tmp, sizeof(tmp));
+            os << "unknown[" << no << "]";
+            return tmp;
+        }
     }
 }
 
@@ -209,10 +216,25 @@ EXTERN_C void __m3_sysc_trace_stop() {
     }
 }
 
+void print_syscall(m3::OStringStream &os, long n, long a, long b, long c, long d, long e, long f) {
+    os << syscall_name(n) << "("
+                          << a << ", " << b << ", " << c << ", "
+                          << d << ", " << e << ", " << f
+                          << ")";
+}
+
 EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f) {
     long res = -ENOSYS;
 
     __m3_sysc_trace_start(n);
+
+#if PRINT_SYSCALLS
+    char syscbuf[256];
+    m3::OStringStream syscos(syscbuf, sizeof(syscbuf));
+    print_syscall(syscos, n, a, b, c, d, e, f);
+    syscos << " ...\n";
+    m3::Machine::write(syscos.str(), syscos.length());
+#endif
 
     switch(n) {
 #if defined(SYS_open)
@@ -328,16 +350,23 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
             break;
 
         default: {
-            char buf[128];
+#if !PRINT_SYSCALLS
+            char buf[256];
             m3::OStringStream os(buf, sizeof(buf));
-            os << "unknown syscall(" << n << ", "
-                                     << a << ", " << b << ", " << c << ", "
-                                     << d << ", " << e << ", " << f
-                                     << ")\n";
+            print_syscall(os, n, a, b, c, d, e, f);
+            os << " -> " << res << "\n";
             m3::Machine::write(os.str(), os.length());
+#endif
             break;
         }
     }
+
+#if PRINT_SYSCALLS
+    syscos.reset();
+    print_syscall(syscos, n, a, b, c, d, e, f);
+    syscos << " -> " << res << "\n";
+    m3::Machine::write(syscos.str(), syscos.length());
+#endif
 
     __m3_sysc_trace_stop();
 
