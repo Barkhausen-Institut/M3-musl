@@ -23,7 +23,8 @@
 #include "intern.h"
 
 EXTERN_C int __m3_getpid() {
-    return m3::Activity::self().id();
+    // + 1, because our ids start with 0, but pid 0 is special
+    return m3::Activity::self().id() + 1;
 }
 
 // pretend that we're running as root
