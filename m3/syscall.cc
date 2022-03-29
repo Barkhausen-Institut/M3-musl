@@ -110,9 +110,21 @@ static const char *syscall_name(long no) {
 
         case SYS_getpid:            return "getpid";
         case SYS_getuid:            return "getuid";
+#if defined(SYS_getuid32)
+        case SYS_getuid32:          return "getuid";
+#endif
         case SYS_geteuid:           return "geteuid";
+#if defined(SYS_geteuid32)
+        case SYS_geteuid32:         return "geteuid";
+#endif
         case SYS_getgid:            return "getgid";
+#if defined(SYS_getgid32)
+        case SYS_getgid32:          return "getgid";
+#endif
         case SYS_getegid:           return "getegid";
+#if defined(SYS_getegid32)
+        case SYS_getegid32:         return "getegid";
+#endif
 
         case 0xFFFF:                return "receive";
         case 0xFFFE:                return "send";
@@ -268,9 +280,21 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 
         case SYS_getpid:            res = __m3_getpid(); break;
         case SYS_getuid:            res = __m3_getuid(); break;
+#if defined(SYS_getuid32)
+        case SYS_getuid32:          res = __m3_getuid(); break;
+#endif
         case SYS_geteuid:           res = __m3_geteuid(); break;
+#if defined(SYS_geteuid32)
+        case SYS_geteuid32:         res = __m3_geteuid(); break;
+#endif
         case SYS_getgid:            res = __m3_getgid(); break;
+#if defined(SYS_getgid32)
+        case SYS_getgid32:          res = __m3_getgid(); break;
+#endif
         case SYS_getegid:           res = __m3_getegid(); break;
+#if defined(SYS_getegid32)
+        case SYS_getegid32:         res = __m3_getegid(); break;
+#endif
 
         // deliberately ignored
         case SYS_ioctl:
