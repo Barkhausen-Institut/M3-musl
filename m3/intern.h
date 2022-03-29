@@ -17,11 +17,21 @@
 
 #include <base/Common.h>
 
+// "restrict" is a keyword in C, but not in C++. Thus, redefine it for the inclusion of time.h
+// to the __restrict keyword of C++.
+#ifdef __cplusplus
+#define restrict __restrict
+#endif
+
 #include <sys/socket.h>
 #include <fcntl.h>
+#include <time.h>
+
+#undef restrict
 
 EXTERN_C int __m3_posix_errno(int m3_error);
 
+// file syscalls
 EXTERN_C int __m3_openat(int dirfd, const char *pathname, int flags, mode_t mode);
 EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count);
 EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt);
@@ -29,11 +39,11 @@ EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count);
 EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt);
 EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence);
 EXTERN_C int __m3_close(int fd);
-
 EXTERN_C int __m3_fcntl(int fd, int cmd, ... /* arg */ );
 EXTERN_C int __m3_faccessat(int dirfd, const char *pathname, int mode, int flags);
 EXTERN_C int __m3_fsync(int fd);
 
+// directory syscalls
 EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf);
 EXTERN_C int __m3_fstatat(int dirfd, const char *pathname,
                           struct kstat *statbuf, int flags);
@@ -44,6 +54,7 @@ EXTERN_C int __m3_renameat2(int olddirfd, const char *oldpath, int newdirfd,
 EXTERN_C int __m3_unlinkat(int dirfd, const char *pathname, int flags);
 EXTERN_C void __m3_closedir(int fd);
 
+// socket syscalls
 EXTERN_C int __m3_socket(int domain, int type, int protocol);
 EXTERN_C int __m3_getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 EXTERN_C int __m3_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
@@ -63,8 +74,13 @@ EXTERN_C ssize_t __m3_socket_read(int fd, void *data, size_t len);
 EXTERN_C int __m3_shutdown(int sockfd, int how);
 EXTERN_C int __m3_socket_close(int fd);
 
+// process syscalls
 EXTERN_C int __m3_getpid();
 EXTERN_C int __m3_getuid();
 EXTERN_C int __m3_geteuid();
 EXTERN_C int __m3_getgid();
 EXTERN_C int __m3_getegid();
+
+// time syscalls
+EXTERN_C int __m3_clock_gettime(clockid_t clockid, struct timespec *tp);
+EXTERN_C int __m3_gettimeofday(struct timeval *tv, struct timezone *tz);

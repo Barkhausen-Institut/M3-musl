@@ -126,6 +126,16 @@ static const char *syscall_name(long no) {
         case SYS_getegid32:         return "getegid";
 #endif
 
+#if defined(SYS_clock_gettime)
+        case SYS_clock_gettime:     return "clock_gettime";
+#endif
+#if defined(SYS_clock_gettime32)
+        case SYS_clock_gettime32:   return "clock_gettime";
+#endif
+#if defined(SYS_clock_gettime64)
+        case SYS_clock_gettime64:   return "clock_gettime";
+#endif
+
         case 0xFFFF:                return "receive";
         case 0xFFFE:                return "send";
 
@@ -296,6 +306,16 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_getegid32:         res = __m3_getegid(); break;
 #endif
 
+#if defined(SYS_clock_gettime)
+        case SYS_clock_gettime:     res = __m3_clock_gettime(a, (struct timespec*)b); break;
+#endif
+#if defined(SYS_clock_gettime32)
+        case SYS_clock_gettime32:   res = __m3_clock_gettime(a, (struct timespec*)b); break;
+#endif
+#if defined(SYS_clock_gettime64)
+        case SYS_clock_gettime64:   res = __m3_clock_gettime(a, (struct timespec*)b); break;
+#endif
+
         // deliberately ignored
         case SYS_ioctl:
         case SYS_prlimit64:
@@ -304,21 +324,6 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #endif
 #if defined(SYS_ugetrlimit)
         case SYS_ugetrlimit:
-#endif
-#if defined(SYS_clock_gettime)
-        case SYS_clock_gettime:
-#endif
-#if defined(SYS_clock_gettime32)
-        case SYS_clock_gettime32:
-#endif
-#if defined(SYS_clock_gettime64)
-        case SYS_clock_gettime64:
-#endif
-#if defined(SYS_gettimeofday)
-        case SYS_gettimeofday:
-#endif
-#if defined(SYS_gettimeofday_time32)
-        case SYS_gettimeofday_time32:
 #endif
             break;
 
