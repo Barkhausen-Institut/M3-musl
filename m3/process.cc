@@ -15,7 +15,7 @@
 
 #include <base/Common.h>
 
-#include <m3/tiles/Activity.h>
+#include <m3/tiles/OwnActivity.h>
 
 #define _GNU_SOURCE
 #include <unistd.h>
@@ -24,7 +24,7 @@
 
 EXTERN_C int __m3_getpid() {
     // + 1, because our ids start with 0, but pid 0 is special
-    return m3::Activity::self().id() + 1;
+    return m3::Activity::own().id() + 1;
 }
 
 // pretend that we're running as root
