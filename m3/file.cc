@@ -45,7 +45,7 @@ EXTERN_C int __m3_openat(int, const char *pathname, int flags, mode_t) {
         m3_flags |= m3::FILE_APPEND;
 
     try {
-        return m3::VFS::open(pathname, m3_flags);
+        return m3::VFS::open(pathname, m3_flags).release()->fd();
     }
     catch(const m3::Exception &e) {
         return -__m3_posix_errno(e.code());
