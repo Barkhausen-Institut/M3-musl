@@ -35,29 +35,29 @@ struct OpenSocket {
     int type;
     int listen_port;
     union {
-        m3::Reference<m3::TcpSocket> stream;
-        m3::Reference<m3::UdpSocket> dgram;
+        m3::FileRef<m3::TcpSocket> stream;
+        m3::FileRef<m3::UdpSocket> dgram;
     };
 
-    explicit OpenSocket(m3::Reference<m3::TcpSocket> _stream)
+    explicit OpenSocket(m3::FileRef<m3::TcpSocket> _stream)
         : type(SOCK_STREAM),
           listen_port(),
-          stream(_stream) {
+          stream(std::move(_stream)) {
     }
 
-    explicit OpenSocket(m3::Reference<m3::UdpSocket> _dgram)
+    explicit OpenSocket(m3::FileRef<m3::UdpSocket> _dgram)
         : type(SOCK_DGRAM),
           listen_port(),
-          dgram(_dgram) {
+          dgram(std::move(_dgram)) {
     }
 
     ~OpenSocket() {
         switch(type) {
             case SOCK_STREAM:
-                stream.unref();
+                stream.reset();
                 break;
             case SOCK_DGRAM:
-                dgram.unref();
+                dgram.reset();
                 break;
         }
     }
