@@ -53,9 +53,6 @@ EXTERN_C int __m3_openat(int, const char *pathname, int flags, mode_t) {
 }
 
 EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count) {
-    if(fd >= m3::FileTable::MAX_FDS)
-        return __m3_socket_read(fd, buf, count);
-
     auto file = m3::Activity::own().files()->get(fd);
     if(!file)
         return -EBADF;
@@ -128,9 +125,6 @@ EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
 }
 
 EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count) {
-    if(fd >= m3::FileTable::MAX_FDS)
-        return __m3_socket_write(fd, buf, count);
-
     auto file = m3::Activity::own().files()->get(fd);
     if(!file)
         return -EBADF;
@@ -164,9 +158,7 @@ EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence) {
 }
 
 EXTERN_C int __m3_close(int fd) {
-    if(fd >= m3::FileTable::MAX_FDS)
-        return __m3_socket_close(fd);
-
+    __m3_socket_close(fd);
     __m3_closedir(fd);
     m3::Activity::own().files()->remove(fd);
     return 0;

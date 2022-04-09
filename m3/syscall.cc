@@ -165,6 +165,7 @@ EXTERN_C int __m3_posix_errno(int m3_error) {
         case m3::Errors::IS_NO_DIR: return ENOTDIR;
         case m3::Errors::TIMEOUT: return ETIMEDOUT;
         case m3::Errors::NO_PERM: return EPERM;
+        case m3::Errors::BAD_FD: return EBADF;
         default: return ENOSYS;
     }
 }
