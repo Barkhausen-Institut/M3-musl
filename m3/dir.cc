@@ -148,6 +148,10 @@ EXTERN_C int __m3_renameat2(int, const char *oldpath,
     return -__m3_posix_errno(m3::VFS::try_rename(oldpath, newpath));
 }
 
+EXTERN_C int __m3_linkat(int, const char *oldpath, int, const char *newpath, int) {
+    return -__m3_posix_errno(m3::VFS::try_link(oldpath, newpath));
+}
+
 EXTERN_C int __m3_unlinkat(int, const char *pathname, int flags) {
     if(flags & AT_REMOVEDIR)
         return -__m3_posix_errno(m3::VFS::try_rmdir(pathname));

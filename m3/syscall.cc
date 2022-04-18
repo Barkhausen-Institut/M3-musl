@@ -88,7 +88,7 @@ static const char *syscall_name(long no) {
 #if defined(SYS_mkdir)
         case SYS_mkdir:
 #endif
-        case SYS_mkdirat:           return "mkdirat";
+        case SYS_mkdirat:           return "mkdir";
 #if defined(SYS_rmdir)
         case SYS_rmdir:             return "rmdir";
 #endif
@@ -96,6 +96,10 @@ static const char *syscall_name(long no) {
         case SYS_rename:
 #endif
         case SYS_renameat2:         return "rename";
+#if defined(SYS_link)
+        case SYS_link:
+#endif
+        case SYS_linkat:            return "link";
 #if defined(SYS_unlink)
         case SYS_unlink:
 #endif
@@ -302,6 +306,10 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_rename:            res = __m3_renameat2(-1, (const char*)a, -1, (const char*)b, 0); break;
 #endif
         case SYS_renameat2:         res = __m3_renameat2(a, (const char*)b, c, (const char*)d, (unsigned)e); break;
+#if defined(SYS_link)
+        case SYS_link:              res = __m3_linkat(-1, (const char*)a, -1, (const char*)b, 0); break;
+#endif
+        case SYS_linkat:            res = __m3_linkat(a, (const char*)b, c, (const char*)d, e); break;
 #if defined(SYS_unlink)
         case SYS_unlink:            res = __m3_unlinkat(-1, (const char*)a, 0); break;
 #endif

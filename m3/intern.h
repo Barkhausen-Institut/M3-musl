@@ -53,6 +53,8 @@ EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count);
 EXTERN_C int __m3_mkdirat(int dirfd, const char *pathname, mode_t mode);
 EXTERN_C int __m3_renameat2(int olddirfd, const char *oldpath, int newdirfd,
                             const char *newpath, unsigned int flags);
+EXTERN_C int __m3_linkat(int olddirfd, const char *oldpath,
+                         int newdirfd, const char *newpath, int flags);
 EXTERN_C int __m3_unlinkat(int dirfd, const char *pathname, int flags);
 EXTERN_C void __m3_closedir(int fd);
 
