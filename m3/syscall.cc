@@ -27,7 +27,8 @@ extern "C" {
 
 #include "intern.h"
 
-#define PRINT_SYSCALLS 0
+#define PRINT_SYSCALLS  0
+#define PRINT_UNKNOWN   0
 
 struct SyscallTraceEntry {
     explicit SyscallTraceEntry() : number(), start(m3::TimeInstant::now()), end(m3::TimeInstant::now()) {
@@ -373,7 +374,7 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
             break;
 
         default: {
-#if !PRINT_SYSCALLS
+#if !PRINT_SYSCALLS && PRINT_UNKNOWN
             char buf[256];
             m3::OStringStream os(buf, sizeof(buf));
             print_syscall(os, n, a, b, c, d, e, f);
