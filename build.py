@@ -54,59 +54,30 @@ def build(gen, env):
 
     # files that we only want to have in the full C library
     files = []
-    files += env.glob('src/aio/*.c')
-    files += env.glob('src/complex/*.c')
-    files += env.glob('src/conf/*.c')
-    files += env.glob('src/crypt/*.c')
-    files += env.glob('src/ctype/*.c')
-    files += env.glob('src/dirent/*.c')
+
+    # directories with all files
+    dirs = [
+        'aio', 'complex', 'conf', 'crypt', 'ctype', 'dirent', 'errno', 'fcntl', 'fenv', 'ipc',
+        'ldso', 'legacy', 'linux', 'locale', 'math', 'misc', 'mman', 'mq', 'multibyte', 'network',
+        'passwd', 'prng', 'process', 'regex', 'sched', 'search', 'select', 'setjmp', 'signal',
+        'stat', 'stdio', 'stdlib', 'temp', 'termios', 'thread', 'time', 'unistd',
+    ]
+    for d in dirs:
+        files += env.glob('src/' + d + '/' + isa + '/*')
+        files += env.glob('src/' + d + '/*.c')
+
+    # directories where we can't use all files
     files += [
         'src/env/clearenv.c', 'src/env/getenv.c', 'src/env/putenv.c',
         'src/env/secure_getenv.c', 'src/env/setenv.c', 'src/env/unsetenv.c'
     ]
-    files += env.glob('src/errno/*.c')
     files += [
         'src/exit/_Exit.c', 'src/exit/abort_lock.c', 'src/exit/assert.c',
         'src/exit/at_quick_exit.c', 'src/exit/quick_exit.c'
     ]
-    files += env.glob('src/fcntl/*.c')
-    files += env.glob('src/fenv/*.c')
-    files += env.glob('src/fenv/' + isa + '/*.c')
     files += [f for f in env.glob('src/internal/*.c') if os.path.basename(f) != 'libc.c']
-    files += env.glob('src/ipc/*.c')
-    files += env.glob('src/ldso/*.c')
-    files += env.glob('src/ldso/' + isa + '/*.c')
-    files += env.glob('src/legacy/*.c')
-    files += env.glob('src/linux/*.c')
-    files += env.glob('src/locale/*.c')
-    files += env.glob('src/math/*.c')
-    files += env.glob('src/math/' + isa + '/*')
-    files += env.glob('src/misc/*.c')
-    files += env.glob('src/mman/*.c')
-    files += env.glob('src/mq/*.c')
-    files += env.glob('src/multibyte/*.c')
-    files += env.glob('src/network/*.c')
-    files += env.glob('src/passwd/*.c')
-    files += env.glob('src/prng/*.c')
-    files += env.glob('src/process/*.c')
-    files += env.glob('src/process/' + isa + '/*.c')
-    files += env.glob('src/regex/*.c')
-    files += env.glob('src/sched/*.c')
-    files += env.glob('src/search/*.c')
-    files += env.glob('src/select/*.c')
-    files += env.glob('src/setjmp/*.c')
-    files += env.glob('src/setjmp/' + isa + '/*')
-    files += env.glob('src/signal/*.c')
-    files += env.glob('src/signal/' + isa + '/*')
-    files += env.glob('src/stat/*.c')
-    files += env.glob('src/stdio/*.c')
-    files += env.glob('src/stdlib/*.c')
-    files += env.glob('src/temp/*.c')
-    files += env.glob('src/termios/*.c')
-    files += env.glob('src/thread/*.c')
-    files += env.glob('src/thread/' + isa + '/*.c')
-    files += env.glob('src/time/*.c')
-    files += env.glob('src/unistd/*.c')
+
+    # m3-specific files
     files += [
         'm3/dir.cc', 'm3/file.cc', 'm3/process.cc', 'm3/socket.cc', 'm3/syscall.cc', 'm3/time.cc'
     ]
