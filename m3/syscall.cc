@@ -81,6 +81,9 @@ static const char *syscall_name(long no) {
 #if defined(SYS_fstatat)
         case SYS_fstatat:           return "stat";
 #endif
+#if defined(SYS_lstat)
+        case SYS_lstat:             return "lstat";
+#endif
         case SYS_getdents64:        return "getdents64";
 #if defined(SYS_mkdir)
         case SYS_mkdir:
@@ -275,6 +278,9 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #endif
 #if defined(SYS_stat)
         case SYS_stat:              res = __m3_fstatat(-1, (const char*)a, (struct kstat*)b, 0); break;
+#endif
+#if defined(SYS_lstat)
+        case SYS_lstat:             res = __m3_fstatat(-1, (const char*)a, (struct kstat*)b, 0); break;
 #endif
 #if defined(SYS_stat64)
       case SYS_stat64:              res = __m3_fstatat(-1, (const char*)a, (struct kstat*)b, 0); break;
