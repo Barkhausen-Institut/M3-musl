@@ -237,13 +237,6 @@ __REDIR(pthread_timedjoin_np, __pthread_timedjoin_np_time64);
 #endif
 #endif
 
-// make some operations to a noop, because we don't have threads
-#define pthread_setcancelstate(a, b) { ((void)a); ((void)b); }
-#undef pthread_cleanup_push
-#undef pthread_cleanup_pop
-#define pthread_cleanup_push(...)
-#define pthread_cleanup_pop(...)
-
 #ifdef __cplusplus
 }
 #endif

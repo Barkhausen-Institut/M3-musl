@@ -397,10 +397,6 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
     return res;
 }
 
-EXTERN_C long __syscall_cp(long n, long a, long b, long c, long d, long e, long f) {
-    return __syscall6(n, a, b, c, d, e, f);
-}
-
 EXTERN_C long __syscall0(long n) {
     return __syscall6(n, 0, 0, 0, 0, 0, 0);
 }
