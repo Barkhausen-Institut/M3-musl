@@ -157,6 +157,31 @@ EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence) {
     }
 }
 
+EXTERN_C int __m3_ftruncate(int fd, off_t length) {
+    auto file = m3::Activity::own().files()->get(fd);
+    if(!file)
+        return -EBADF;
+
+    try {
+        file->truncate(static_cast<size_t>(length));
+    }
+    catch(const m3::Exception &e) {
+        return -__m3_posix_errno(e.code());
+    }
+    return 0;
+}
+
+EXTERN_C int __m3_truncate(const char *pathname, off_t length) {
+    try {
+        auto file = m3::VFS::open(pathname, m3::FILE_W);
+        file->truncate(static_cast<size_t>(length));
+    }
+    catch(const m3::Exception &e) {
+        return -__m3_posix_errno(e.code());
+    }
+    return 0;
+}
+
 EXTERN_C int __m3_close(int fd) {
     __m3_socket_close(fd);
     __m3_closedir(fd);

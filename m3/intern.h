@@ -38,6 +38,8 @@ EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt);
 EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count);
 EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt);
 EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence);
+EXTERN_C int __m3_ftruncate(int fd, off_t length);
+EXTERN_C int __m3_truncate(const char *pathname, off_t length);
 EXTERN_C int __m3_close(int fd);
 EXTERN_C int __m3_fcntl(int fd, int cmd, ... /* arg */ );
 EXTERN_C int __m3_faccessat(int dirfd, const char *pathname, int mode, int flags);
