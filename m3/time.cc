@@ -15,6 +15,9 @@
 
 #include <base/Common.h>
 #include <base/time/Instant.h>
+#include <base/time/Duration.h>
+
+#include <m3/tiles/OwnActivity.h>
 
 #define __NEED_struct_timeval
 #define __NEED_time_t
@@ -33,5 +36,20 @@ EXTERN_C int __m3_clock_gettime(clockid_t clockid, struct timespec *tp) {
     auto now = m3::TimeInstant::now().elapsed();
     tp->tv_sec = static_cast<time_t>(now.as_secs());
     tp->tv_nsec = static_cast<long>(now.as_nanos() - (static_cast<ulong>(tp->tv_sec) * 1000000000));
+    return 0;
+}
+
+EXTERN_C int __m3_nanosleep(const struct timespec *req, struct timespec *rem) {
+    auto start = m3::TimeInstant::now();
+
+    uint64_t nanos = static_cast<uint64_t>(req->tv_nsec) + static_cast<ulong>(req->tv_sec) * 1000000000;
+    m3::Activity::sleep_for(m3::TimeDuration::from_nanos(nanos));
+
+    if(rem) {
+        auto duration = m3::TimeInstant::now().duration_since(start);
+        auto remaining = m3::TimeDuration::from_nanos(nanos) - duration;
+        rem->tv_sec = static_cast<time_t>(remaining.as_secs());
+        rem->tv_nsec = static_cast<long>(remaining.as_nanos() - (static_cast<ulong>(rem->tv_sec) * 1000000000));
+    }
     return 0;
 }

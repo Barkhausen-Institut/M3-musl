@@ -86,4 +86,4 @@ EXTERN_C mode_t __m3_umask(mode_t mode);
 
 // time syscalls
 EXTERN_C int __m3_clock_gettime(clockid_t clockid, struct timespec *tp);
-EXTERN_C int __m3_gettimeofday(struct timeval *tv, struct timezone *tz);
+EXTERN_C int __m3_nanosleep(const struct timespec *req, struct timespec *rem);

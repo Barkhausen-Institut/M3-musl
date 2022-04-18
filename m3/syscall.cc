@@ -147,6 +147,7 @@ static const char *syscall_name(long no) {
 #if defined(SYS_clock_gettime64)
         case SYS_clock_gettime64:   return "clock_gettime";
 #endif
+        case SYS_nanosleep:         return "nanosleep";
 
         case 0xFFFF:                return "receive";
         case 0xFFFE:                return "send";
@@ -358,6 +359,7 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #if defined(SYS_clock_gettime64)
         case SYS_clock_gettime64:   res = __m3_clock_gettime(a, (struct timespec*)b); break;
 #endif
+        case SYS_nanosleep:         res = __m3_nanosleep((const struct timespec*)a, (struct timespec*)b); break;
 
         // deliberately ignored
         case SYS_ioctl:
