@@ -40,3 +40,8 @@ EXTERN_C int __m3_getgid() {
 EXTERN_C int __m3_getegid() {
     return 0;
 }
+
+EXTERN_C mode_t __m3_umask(mode_t) {
+    // we don't support changes here; just report the typical default value
+    return 022;
+}

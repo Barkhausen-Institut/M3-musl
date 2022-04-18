@@ -136,6 +136,7 @@ static const char *syscall_name(long no) {
 #if defined(SYS_getegid32)
         case SYS_getegid32:         return "getegid";
 #endif
+        case SYS_umask:             return "umask";
 
 #if defined(SYS_clock_gettime)
         case SYS_clock_gettime:     return "clock_gettime";
@@ -346,6 +347,7 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #if defined(SYS_getegid32)
         case SYS_getegid32:         res = __m3_getegid(); break;
 #endif
+        case SYS_umask:             res = (long)__m3_umask((mode_t)a); break;
 
 #if defined(SYS_clock_gettime)
         case SYS_clock_gettime:     res = __m3_clock_gettime(a, (struct timespec*)b); break;
