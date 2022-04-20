@@ -73,7 +73,7 @@ def build(gen, env):
         'src/env/secure_getenv.c', 'src/env/setenv.c', 'src/env/unsetenv.c'
     ]
     files += [
-        'src/exit/_Exit.c', 'src/exit/abort_lock.c', 'src/exit/assert.c',
+        'src/exit/abort_lock.c', 'src/exit/assert.c',
         'src/exit/at_quick_exit.c', 'src/exit/quick_exit.c'
     ]
     files += [f for f in env.glob('src/internal/*.c') if os.path.basename(f) != 'libc.c']
