@@ -17,6 +17,7 @@
 #include "pthread_impl.h"
 #include <features.h>
 #include <stddef.h>
+#include <string.h>
 #include <unistd.h>
 
 static char *posix_env[] = {NULL, NULL};
@@ -32,7 +33,13 @@ int __init_tp(void *p) {
     return 0;
 }
 
-void __m3_init_libc() {
+void __m3_init_libc(int argc, char **argv) {
+    __progname_full = argv[0];
+    __progname = __progname_full;
+    char *last_slash = strrchr(__progname, '/');
+    if(last_slash)
+        __progname = last_slash + 1;
+
     __init_libc(posix_env, NULL);
 }
 
@@ -41,7 +48,6 @@ weak void __init_libc(char **envp, char *pn) {
     __environ = envp;
 #endif
     libc.auxv = (void *)(envp + 1);
-    __progname = __progname_full = "";
     __init_tp(&m3_cur_pthread);
 }
 
