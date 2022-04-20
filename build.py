@@ -44,6 +44,7 @@ def build(gen, env):
         '-Wno-old-style-declaration',
         '-Wno-type-limits',
         '-Wno-cast-function-type',
+        '-Wno-array-parameter',
     ]
     env['CPPFLAGS'] += ['-D_XOPEN_SOURCE=700']
 
@@ -79,7 +80,8 @@ def build(gen, env):
 
     # m3-specific files
     files += [
-        'm3/dir.cc', 'm3/file.cc', 'm3/process.cc', 'm3/socket.cc', 'm3/syscall.cc', 'm3/time.cc'
+        'm3/dir.cc', 'm3/file.cc', 'm3/process.cc', 'm3/socket.cc', 'm3/syscall.cc',
+        'm3/time.cc', 'm3/misc.cc',
     ]
 
     # files we want to have for bare-metal components

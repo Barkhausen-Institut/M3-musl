@@ -150,6 +150,8 @@ static const char *syscall_name(long no) {
 #endif
         case SYS_nanosleep:         return "nanosleep";
 
+        case SYS_uname:             return "uname";
+
         case 0xFFFF:                return "receive";
         case 0xFFFE:                return "send";
 
@@ -361,6 +363,8 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_clock_gettime64:   res = __m3_clock_gettime(a, (struct timespec*)b); break;
 #endif
         case SYS_nanosleep:         res = __m3_nanosleep((const struct timespec*)a, (struct timespec*)b); break;
+
+        case SYS_uname:             res = __m3_uname((struct utsname *)a); break;
 
         // deliberately ignored
         case SYS_ioctl:
