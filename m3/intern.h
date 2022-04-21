@@ -57,6 +57,8 @@ EXTERN_C int __m3_linkat(int olddirfd, const char *oldpath,
                          int newdirfd, const char *newpath, int flags);
 EXTERN_C int __m3_unlinkat(int dirfd, const char *pathname, int flags);
 EXTERN_C void __m3_closedir(int fd);
+EXTERN_C int __m3_chdir(const char *path);
+EXTERN_C int __m3_fchdir(int fd);
 
 // socket syscalls
 EXTERN_C int __m3_socket(int domain, int type, int protocol);

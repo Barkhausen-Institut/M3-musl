@@ -105,6 +105,8 @@ static const char *syscall_name(long no) {
         case SYS_unlink:
 #endif
         case SYS_unlinkat:          return "unlink";
+        case SYS_chdir:             return "chdir";
+        case SYS_fchdir:            return "fchdir";
 
         case SYS_socket:            return "socket";
         case SYS_connect:           return "connect";
@@ -319,6 +321,8 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_unlink:            res = __m3_unlinkat(-1, (const char*)a, 0); break;
 #endif
         case SYS_unlinkat:          res = __m3_unlinkat(a, (const char*)b, c); break;
+        case SYS_chdir:             res = __m3_chdir((const char*)a); break;
+        case SYS_fchdir:            res = __m3_fchdir(a); break;
 
         case SYS_socket:            res = __m3_socket(a, b, c); break;
         case SYS_bind:              res = __m3_bind(a, (const struct sockaddr*)b, (socklen_t)c); break;
