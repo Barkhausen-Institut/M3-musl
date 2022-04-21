@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <kstat.h>
+#include <limits.h>
 
 #include "intern.h"
 
@@ -189,8 +190,9 @@ EXTERN_C int __m3_fchdir(int fd) {
         if(!S_ISDIR(info.mode))
             return -ENOTDIR;
 
+        char abspath[PATH_MAX];
         m3::String path = file->path();
-        setenv("PWD", path.c_str(), 1);
+        setenv("PWD", realpath(path.c_str(), abspath), 1);
         return 0;
     }
     catch(const m3::Exception &e) {

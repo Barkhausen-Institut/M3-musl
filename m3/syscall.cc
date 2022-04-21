@@ -323,6 +323,11 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_unlinkat:          res = __m3_unlinkat(a, (const char*)b, c); break;
         case SYS_chdir:             res = __m3_chdir((const char*)a); break;
         case SYS_fchdir:            res = __m3_fchdir(a); break;
+        // we don't support symlinks; so it's never a symlink
+#if defined(SYS_readlink)
+        case SYS_readlink:          res = -EINVAL; break;
+#endif
+        case SYS_readlinkat:        res = -EINVAL; break;
 
         case SYS_socket:            res = __m3_socket(a, b, c); break;
         case SYS_bind:              res = __m3_bind(a, (const struct sockaddr*)b, (socklen_t)c); break;
