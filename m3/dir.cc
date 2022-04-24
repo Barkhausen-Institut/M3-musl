@@ -171,31 +171,20 @@ EXTERN_C void __m3_closedir(int fd) {
 
 EXTERN_C int __m3_chdir(const char *path) {
     try {
-        auto file = m3::VFS::open(path, m3::FILE_R);
-        return __m3_fchdir(file->fd());
+        m3::VFS::set_cwd(path);
     }
     catch(const m3::Exception &e) {
         return -__m3_posix_errno(e.code());
     }
+    return 0;
 }
 
 EXTERN_C int __m3_fchdir(int fd) {
-    auto file = m3::Activity::own().files()->get(fd);
-    if(!file)
-        return -EBADF;
-
     try {
-        m3::FileInfo info;
-        file->stat(info);
-        if(!S_ISDIR(info.mode))
-            return -ENOTDIR;
-
-        char abspath[PATH_MAX];
-        m3::String path = file->path();
-        setenv("PWD", realpath(path.c_str(), abspath), 1);
-        return 0;
+        m3::VFS::set_cwd(fd);
     }
     catch(const m3::Exception &e) {
         return -__m3_posix_errno(e.code());
     }
+    return 0;
 }
