@@ -62,7 +62,12 @@ static m3::Socket *get_socket(int fd) {
         return nullptr;
     if(sockets[fd].type == -1)
         return nullptr;
-    return static_cast<m3::Socket*>(m3::Activity::own().files()->get(fd));
+    try {
+        return static_cast<m3::Socket*>(m3::Activity::own().files()->get(fd));
+    }
+    catch(const m3::Exception &) {
+        return nullptr;
+    }
 }
 
 static m3::Endpoint sockaddr_to_ep(const struct sockaddr *addr, socklen_t addrlen) {

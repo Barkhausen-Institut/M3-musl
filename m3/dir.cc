@@ -60,16 +60,20 @@ static void translate_stat(m3::FileInfo &info, struct kstat *statbuf) {
 }
 
 EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf) {
-    auto file = m3::Activity::own().files()->get(fd);
-    if(!file)
-        return -EBADF;
+    try {
+        auto file = m3::Activity::own().files()->get(fd);
 
-    m3::FileInfo info;
-    m3::Errors::Code res = file->try_stat(info);
-    if(res != m3::Errors::NONE)
-        return -__m3_posix_errno(res);
-    translate_stat(info, statbuf);
-    return 0;
+        m3::FileInfo info;
+        m3::Errors::Code res = file->try_stat(info);
+        if(res != m3::Errors::NONE)
+            return -__m3_posix_errno(res);
+
+        translate_stat(info, statbuf);
+        return 0;
+    }
+    catch(const m3::Exception &e) {
+        return -__m3_posix_errno(e.code());
+    }
 }
 
 EXTERN_C int __m3_fstatat(int, const char *pathname,
@@ -83,15 +87,13 @@ EXTERN_C int __m3_fstatat(int, const char *pathname,
 }
 
 EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
-    auto file = m3::Activity::own().files()->get(fd);
-    if(!file)
-        return -EBADF;
     if(static_cast<size_t>(fd) >= MAX_DIRS)
         return -ENOSPC;
 
     bool read_first = true;
     if(open_dirs[fd].dir == nullptr) {
         try {
+            m3::Activity::own().files()->get(fd);
             open_dirs[fd].dir = new m3::Dir(fd);
             open_dirs[fd].entry = new m3::Dir::Entry;
         }
