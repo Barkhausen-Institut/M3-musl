@@ -380,9 +380,9 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_nanosleep:         res = __m3_nanosleep((const struct timespec*)a, (struct timespec*)b); break;
 
         case SYS_uname:             res = __m3_uname((struct utsname *)a); break;
+        case SYS_ioctl:             res = __m3_ioctl(a, (unsigned long)b, c, d, e, f); break;
 
         // deliberately ignored
-        case SYS_ioctl:
         case SYS_prlimit64:
 #if defined(SYS_getrlimit)
         case SYS_getrlimit:
