@@ -91,18 +91,25 @@ EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt) {
 }
 
 EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
+    m3::File *file;
+    try {
+        file = m3::Activity::own().files()->get(fildes);
+    }
+    catch(const m3::Exception &e) {
+        return -__m3_posix_errno(e.code());
+    }
+
     ssize_t total = 0;
     for(int i = 0; i < iovcnt; ++i) {
         char *base = static_cast<char*>(iov[i].iov_base);
         size_t rem = iov[i].iov_len;
         while(rem > 0) {
             try {
-                auto file = m3::Activity::own().files()->get(fildes);
                 ssize_t amount = file->write(base, rem);
                 if(amount == -1 && total == 0)
                     return -EWOULDBLOCK;
                 if(amount == 0)
-                    return total;
+                    goto done;
                 rem -= static_cast<size_t>(amount);
                 base += amount;
                 total += amount;
@@ -111,6 +118,15 @@ EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
                 return -__m3_posix_errno(e.code());
             }
         }
+    }
+
+done:
+    // musl expects no further buffering below FILE, so flush on every write call
+    try {
+        file->flush();
+    }
+    catch(const m3::Exception &e) {
+        return -__m3_posix_errno(e.code());
     }
     return total;
 }
@@ -121,6 +137,8 @@ EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count) {
         ssize_t res = file->write(buf, count);
         if(res == -1)
             return -EWOULDBLOCK;
+        // musl expects no further buffering below FILE, so flush on every write call
+        file->flush();
         return res;
     }
     catch(const m3::Exception &e) {
