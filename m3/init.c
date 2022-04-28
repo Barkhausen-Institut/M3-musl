@@ -20,6 +20,8 @@
 #include <string.h>
 #include <unistd.h>
 
+extern struct pthread m3_cur_pthread;
+
 int __init_tp(void *p) {
     pthread_t td = p;
     td->self = td;
@@ -47,6 +49,7 @@ weak void __init_libc(char **envp, char *pn) {
 #endif
     libc.auxv = (void *)(envp + 1);
     __init_tp(&m3_cur_pthread);
+    m3_pthread_addr = (uintptr_t)&m3_cur_pthread;
 }
 
 hidden void __init_tls(size_t *tls) {

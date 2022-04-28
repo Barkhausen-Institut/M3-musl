@@ -202,9 +202,4 @@ extern hidden unsigned __default_guardsize;
 
 #define __ATTRP_C11_THREAD ((void*)(uintptr_t)-1)
 
-extern struct pthread m3_cur_pthread;
-
-#undef __pthread_self
-#define __pthread_self()	(&m3_cur_pthread)
-
 #endif

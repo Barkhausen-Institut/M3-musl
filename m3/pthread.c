@@ -15,4 +15,5 @@
 
 #include "pthread_impl.h"
 
+uintptr_t m3_pthread_addr;
 struct pthread m3_cur_pthread;
