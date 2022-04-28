@@ -21,7 +21,6 @@
 #include <m3/vfs/VFS.h>
 #include <fs/internal.h>
 
-#define _GNU_SOURCE
 #include <sys/uio.h>
 #include <dirent.h>
 #include <errno.h>

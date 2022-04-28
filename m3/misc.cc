@@ -19,7 +19,7 @@
 #include <m3/vfs/File.h>
 #include <m3/vfs/FileTable.h>
 
-#define _GNU_SOURCE
+#define _GNU_SOURCE // for domainname
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
 #include <errno.h>

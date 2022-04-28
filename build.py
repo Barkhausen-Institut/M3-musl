@@ -46,7 +46,7 @@ def build(gen, env):
         '-Wno-cast-function-type',
         '-Wno-array-parameter',
     ]
-    env['CPPFLAGS'] += ['-D_XOPEN_SOURCE=700']
+    env['CPPFLAGS'] += ['-D_XOPEN_SOURCE=700', '-U_GNU_SOURCE']
 
     # disable lto for now, since it doesn't work here ('plugin needed to handle lto object')
     # I don't know why it works for libm3, but not for libc.

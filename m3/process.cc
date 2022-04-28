@@ -17,7 +17,6 @@
 
 #include <m3/tiles/OwnActivity.h>
 
-#define _GNU_SOURCE
 #include <unistd.h>
 
 #include "intern.h"

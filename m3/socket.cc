@@ -20,7 +20,6 @@
 #include <m3/vfs/FileTable.h>
 #include <fs/internal.h>
 
-#define _GNU_SOURCE
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <errno.h>

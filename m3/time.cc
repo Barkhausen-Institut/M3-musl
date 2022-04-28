@@ -23,7 +23,6 @@
 #define __NEED_time_t
 #define __NEED_suseconds_t
 
-#define _GNU_SOURCE
 #include <errno.h>
 #include <unistd.h>
 
