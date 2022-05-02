@@ -20,10 +20,7 @@
 
 #include <debug.h>
 
-#if defined(__host__)
-#   include "../arch/x86_64/syscall_arch.h"
-#   include <bits/syscall.h>
-#else
+#if !defined(__host__)
 EXTERN_C void gem5_writefile(const char *str, uint64_t len, uint64_t offset, uint64_t file);
 #endif
 
@@ -56,9 +53,7 @@ void debug_putu(DebugBuf *db, ullong n, uint base) {
 }
 
 void debug_flush(DebugBuf *db) {
-#if defined(__host__)
-    __syscall3(SYS_write, 1, (long)db->buf, (long)db->pos);
-#else
+#if !defined(__host__)
     static const char *fileAddr = "stdout";
     gem5_writefile(db->buf, db->pos, 0, reinterpret_cast<uint64_t>(fileAddr));
 #endif

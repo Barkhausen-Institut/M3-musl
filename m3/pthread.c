@@ -17,3 +17,6 @@
 
 uintptr_t m3_pthread_addr;
 struct pthread m3_cur_pthread;
+
+uintptr_t __p2m3_m3_pthread_addr __attribute__((__alias__("m3_pthread_addr")));
+struct pthread __p2m3_m3_cur_pthread __attribute__((__alias__("m3_cur_pthread")));

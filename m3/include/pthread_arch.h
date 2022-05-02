@@ -1,3 +1,7 @@
+#if defined(__host__)
+#   include_next "pthread_arch.h"
+#else
+
 extern uintptr_t m3_pthread_addr;
 
 static inline uintptr_t __get_tp()
@@ -14,4 +18,6 @@ static inline uintptr_t __get_tp()
 #else
 #   define GAP_ABOVE_TP 8
 #   define MC_PC arm_pc
+#endif
+
 #endif

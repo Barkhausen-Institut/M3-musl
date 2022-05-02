@@ -21,13 +21,18 @@
 #include <m3/vfs/VFS.h>
 #include <fs/internal.h>
 
-#include <sys/stat.h>
-#include <sys/uio.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <kstat.h>
-#include <limits.h>
+#if defined(__host__)
+#   include "../arch/x86_64/kstat.h"
+#   include "../include/dirent.h"
+#else
+#   include <sys/stat.h>
+#   include <sys/uio.h>
+#   include <dirent.h>
+#   include <errno.h>
+#   include <fcntl.h>
+#   include <kstat.h>
+#   include <limits.h>
+#endif
 
 #include "intern.h"
 

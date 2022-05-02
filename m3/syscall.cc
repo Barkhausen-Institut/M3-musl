@@ -27,8 +27,8 @@ extern "C" {
 
 #include "intern.h"
 
-#define PRINT_SYSCALLS  0
-#define PRINT_UNKNOWN   0
+#define PRINT_SYSCALLS  1
+#define PRINT_UNKNOWN   1
 
 struct SyscallTraceEntry {
     explicit SyscallTraceEntry() : number(), start(m3::TimeInstant::now()), end(m3::TimeInstant::now()) {
@@ -434,3 +434,11 @@ EXTERN_C long __syscall4(long n, long a, long b, long c, long d) {
 EXTERN_C long __syscall5(long n, long a, long b, long c, long d, long e) {
     return __syscall6(n, a, b, c, d, e, 0);
 }
+
+EXTERN_C long __p2m3___syscall0(long) __attribute__((__alias__("__syscall0")));
+EXTERN_C long __p2m3___syscall1(long, long) __attribute__((__alias__("__syscall1")));
+EXTERN_C long __p2m3___syscall2(long, long, long) __attribute__((__alias__("__syscall2")));
+EXTERN_C long __p2m3___syscall3(long, long, long, long) __attribute__((__alias__("__syscall3")));
+EXTERN_C long __p2m3___syscall4(long, long, long, long, long) __attribute__((__alias__("__syscall4")));
+EXTERN_C long __p2m3___syscall5(long, long, long, long, long, long) __attribute__((__alias__("__syscall5")));
+EXTERN_C long __p2m3___syscall6(long, long, long, long, long, long, long) __attribute__((__alias__("__syscall6")));

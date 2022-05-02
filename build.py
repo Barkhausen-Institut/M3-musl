@@ -2,12 +2,23 @@ import src.tools.ninjagen as ninjagen
 import os
 
 def build(gen, env):
-    if env['PLATF'] != 'kachel':
-        return
-
     env = env.clone()
 
+    env['ARFLAGS'] = ['rcP']
+
+    # no sanitizers for musl, because we don't want to have dependencies
+    for f in ['CFLAGS', 'CXXFLAGS']:
+        env.remove_flag(f, '-fsanitize=undefined')
+        env.remove_flag(f, '-fsanitize=address')
+
+    m3env = env.clone()
+
     isa = 'riscv64' if env['ISA'] == 'riscv' else env['ISA']
+
+    m3env['CPPPATH'] += [
+        'src/libs/musl/m3/include',
+        'src/libs/musl/m3/include/' + env['ISA'],
+    ]
 
     env['CPPPATH'] = [
         'src/libs/musl/m3/include',
@@ -19,9 +30,14 @@ def build(gen, env):
         'src/libs/musl/src/internal',
         'src/libs/musl/include',
         'src/include',
-        env['CROSSDIR'] + '/include/c++/' + env['CROSSVER'],
-        env['CROSSDIR'] + '/include/c++/' + env['CROSSVER'] + '/' + env['CROSS'][:-1],
     ]
+    if env['PLATF'] == 'kachel':
+        env['CPPPATH'] += [
+            env['CROSSDIR'] + '/include/c++/' + env['CROSSVER'],
+            env['CROSSDIR'] + '/include/c++/' + env['CROSSVER'] + '/' + env['CROSS'][:-1],
+        ]
+    else:
+        env['CFLAGS'] += ['-nostdinc']
 
     # disable the warnings that musl produces
     env['CFLAGS'] += [
@@ -79,7 +95,9 @@ def build(gen, env):
     files += [f for f in env.glob('src/internal/*.c') if os.path.basename(f) != 'libc.c']
 
     # m3-specific files
-    files += [
+    m3_files = []
+    simple_m3_files = []
+    m3_files += [
         'm3/dir.cc', 'm3/file.cc', 'm3/process.cc', 'm3/socket.cc', 'm3/syscall.cc',
         'm3/time.cc', 'm3/misc.cc',
     ]
@@ -91,13 +109,36 @@ def build(gen, env):
     simple_files += ['src/internal/libc.c']
     simple_files += env.glob('src/string/*.c')
     simple_files += env.glob('src/string/' + isa + '/*')
-    simple_files += ['m3/debug.cc', 'm3/init.c', 'm3/lock.c', 'm3/pthread.c', 'm3/exit.cc']
+    if env['PLATF'] == 'kachel':
+        simple_m3_files += ['m3/debug.cc', 'm3/init.c', 'm3/lock.c', 'm3/pthread.c', 'm3/exit.cc']
+    else:
+        simple_files += ['src/exit/_Exit.c']
     simple_objs = env.objs(gen, simple_files)
 
+    # build the m3 files in a different environment
+    m3_objs = m3env.objs(gen, m3_files)
+    simple_m3_objs = m3env.objs(gen, simple_m3_files)
+
     # simple C library without dependencies (but also no stdio, etc.)
-    lib = env.static_lib(gen, out = 'libsimplec', ins = simple_objs)
+    lib = env.static_lib(gen, out = 'libsimplec', ins = simple_objs + simple_m3_objs)
     env.install(gen, env['LIBDIR'], lib)
 
     # full C library
-    lib = env.static_lib(gen, out = 'libc', ins = files + simple_objs)
+    if env['PLATF'] == 'kachel':
+        lib = env.static_lib(gen, out = 'libc', ins = files + simple_objs + m3_objs)
+    else:
+        gen.add_rule('prefix', ninjagen.Rule(
+            cmd = 'objcopy --prefix-symbols=__p2m3_ $in $out && ar rP $out $objs',
+            desc = 'PREFIX $out',
+        ))
+
+        muslpre = env.static_lib(gen, out = 'libmusl-pre', ins = files + simple_objs)
+        lib = ninjagen.BuildPath.new(env, 'libmusl.a')
+        gen.add_build(ninjagen.BuildEdge(
+            'prefix',
+            outs = [lib],
+            ins = [muslpre],
+            vars = { 'objs' : ' '.join(m3_objs) },
+            deps = m3_objs,
+        ))
     env.install(gen, env['LIBDIR'], lib)
