@@ -255,12 +255,13 @@ EXTERN_C ssize_t __m3_sendto(int fd, const void *buf, size_t len, int flags,
 
     try {
         switch(sockets[fd].type) {
-            case SOCK_STREAM: return s->send(buf, len);
+            case SOCK_STREAM: return static_cast<ssize_t>(s->send(buf, len).value_or(-1));
             case SOCK_DGRAM: {
                 auto ep = sockaddr_to_ep(dest_addr, addrlen);
                 if(ep == m3::Endpoint::unspecified())
                     return -EINVAL;
-                return static_cast<m3::UdpSocket *>(s)->send_to(buf, len, ep);
+                auto udp_sock = static_cast<m3::UdpSocket *>(s);
+                return static_cast<ssize_t>(udp_sock->send_to(buf, len, ep).value_or(-1));
             }
         }
     }
@@ -294,11 +295,17 @@ EXTERN_C ssize_t __m3_recvfrom(int fd, void *buf, size_t len, int flags, struct 
     try {
         switch(sockets[fd].type) {
             case SOCK_STREAM:
-                res = s->recv(buf, len);
+                res = static_cast<ssize_t>(s->recv(buf, len).value_or(-1));
                 ep = s->remote_endpoint();
                 break;
             case SOCK_DGRAM: {
-                res = static_cast<m3::UdpSocket *>(s)->recv_from(buf, len, &ep);
+                auto udp_sock = static_cast<m3::UdpSocket *>(s);
+                if(auto recv_res = udp_sock->recv_from(buf, len)) {
+                    res = static_cast<ssize_t>(recv_res.value().first);
+                    ep = recv_res.value().second;
+                }
+                else
+                    res = -1;
                 break;
             }
         }
