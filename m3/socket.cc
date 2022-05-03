@@ -14,16 +14,17 @@
  */
 
 #include <base/Common.h>
-#include <m3/session/NetworkManager.h>
+
 #include <m3/net/TcpSocket.h>
 #include <m3/net/UdpSocket.h>
+#include <m3/session/NetworkManager.h>
 #include <m3/vfs/FileTable.h>
-#include <fs/internal.h>
 
-#include <netinet/in.h>
-#include <sys/socket.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fs/internal.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 #include "intern.h"
 
@@ -62,7 +63,7 @@ static m3::Socket *get_socket(int fd) {
     if(sockets[fd].type == -1)
         return nullptr;
     try {
-        return static_cast<m3::Socket*>(m3::Activity::own().files()->get(fd));
+        return static_cast<m3::Socket *>(m3::Activity::own().files()->get(fd));
     }
     catch(const m3::Exception &) {
         return nullptr;
@@ -73,7 +74,7 @@ static m3::Endpoint sockaddr_to_ep(const struct sockaddr *addr, socklen_t addrle
     if(addrlen != sizeof(struct sockaddr_in))
         return m3::Endpoint::unspecified();
 
-    auto addr_in = reinterpret_cast<const struct sockaddr_in*>(addr);
+    auto addr_in = reinterpret_cast<const struct sockaddr_in *>(addr);
     return m3::Endpoint(m3::IpAddr(ntohl(addr_in->sin_addr.s_addr)), ntohs(addr_in->sin_port));
 }
 
@@ -101,14 +102,9 @@ EXTERN_C int __m3_socket(int domain, int type, int) {
     m3::File *file = nullptr;
     try {
         switch(type & ~(SOCK_CLOEXEC | SOCK_NONBLOCK)) {
-            case SOCK_STREAM:
-                file = m3::TcpSocket::create(*netmng).release();
-                break;
-            case SOCK_DGRAM:
-                file = m3::UdpSocket::create(*netmng).release();
-                break;
-            default:
-                return -EPROTONOSUPPORT;
+            case SOCK_STREAM: file = m3::TcpSocket::create(*netmng).release(); break;
+            case SOCK_DGRAM: file = m3::UdpSocket::create(*netmng).release(); break;
+            default: return -EPROTONOSUPPORT;
         }
     }
     catch(const m3::Exception &e) {
@@ -155,9 +151,7 @@ EXTERN_C int __m3_bind(int fd, const struct sockaddr *addr, socklen_t addrlen) {
                 // just remember the port for the listen call
                 sockets[fd].listen_port = ep.port;
                 return 0;
-            case SOCK_DGRAM:
-                static_cast<m3::UdpSocket*>(s)->bind(ep.port);
-                return 0;
+            case SOCK_DGRAM: static_cast<m3::UdpSocket *>(s)->bind(ep.port); return 0;
         }
     }
     catch(const m3::Exception &e) {
@@ -175,8 +169,7 @@ EXTERN_C int __m3_listen(int fd, int) {
         case SOCK_STREAM:
             // don't do anything; accept will start listening
             return 0;
-        case SOCK_DGRAM:
-            return -ENOTSUP;
+        case SOCK_DGRAM: return -ENOTSUP;
     }
     UNREACHED;
 }
@@ -195,7 +188,7 @@ EXTERN_C int __m3_accept(int fd, struct sockaddr *addr, socklen_t *addrlen) {
             return cfd;
 
         // put the socket into listen mode
-        auto *cs = static_cast<m3::TcpSocket*>(get_socket(cfd));
+        auto *cs = static_cast<m3::TcpSocket *>(get_socket(cfd));
         assert(cs != nullptr);
         try {
             cs->listen(sockets[fd].listen_port);
@@ -262,13 +255,12 @@ EXTERN_C ssize_t __m3_sendto(int fd, const void *buf, size_t len, int flags,
 
     try {
         switch(sockets[fd].type) {
-            case SOCK_STREAM:
-                return s->send(buf, len);
+            case SOCK_STREAM: return s->send(buf, len);
             case SOCK_DGRAM: {
                 auto ep = sockaddr_to_ep(dest_addr, addrlen);
                 if(ep == m3::Endpoint::unspecified())
                     return -EINVAL;
-                return static_cast<m3::UdpSocket*>(s)->send_to(buf, len, ep);
+                return static_cast<m3::UdpSocket *>(s)->send_to(buf, len, ep);
             }
         }
     }
@@ -279,14 +271,15 @@ EXTERN_C ssize_t __m3_sendto(int fd, const void *buf, size_t len, int flags,
 }
 
 EXTERN_C ssize_t __m3_sendmsg(int fd, const struct msghdr *msg, int flags) {
-    if(msg->msg_control != nullptr || flags != 0 || msg->msg_iovlen != 1 || msg->msg_name != nullptr)
+    if(msg->msg_control != nullptr || flags != 0 || msg->msg_iovlen != 1 ||
+       msg->msg_name != nullptr)
         return -ENOTSUP;
 
     return __m3_write(fd, msg->msg_iov->iov_base, msg->msg_iov->iov_len);
 }
 
-EXTERN_C ssize_t __m3_recvfrom(int fd, void *buf, size_t len, int flags,
-                               struct sockaddr *src_addr, socklen_t *addrlen) {
+EXTERN_C ssize_t __m3_recvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *src_addr,
+                               socklen_t *addrlen) {
     if(flags != 0)
         return -ENOTSUP;
     if(src_addr == nullptr)
@@ -305,7 +298,7 @@ EXTERN_C ssize_t __m3_recvfrom(int fd, void *buf, size_t len, int flags,
                 ep = s->remote_endpoint();
                 break;
             case SOCK_DGRAM: {
-                res = static_cast<m3::UdpSocket*>(s)->recv_from(buf, len, &ep);
+                res = static_cast<m3::UdpSocket *>(s)->recv_from(buf, len, &ep);
                 break;
             }
         }
@@ -323,7 +316,8 @@ EXTERN_C ssize_t __m3_recvfrom(int fd, void *buf, size_t len, int flags,
 }
 
 EXTERN_C ssize_t __m3_recvmsg(int fd, struct msghdr *msg, int flags) {
-    if(msg->msg_control != nullptr || flags != 0 || msg->msg_iovlen != 1 || msg->msg_name != nullptr)
+    if(msg->msg_control != nullptr || flags != 0 || msg->msg_iovlen != 1 ||
+       msg->msg_name != nullptr)
         return -ENOTSUP;
 
     return __m3_read(fd, msg->msg_iov->iov_base, msg->msg_iov->iov_len);
@@ -339,9 +333,7 @@ EXTERN_C int __m3_shutdown(int fd, int how) {
 
     try {
         switch(sockets[fd].type) {
-            case SOCK_STREAM:
-                static_cast<m3::TcpSocket*>(s)->abort();
-                return 0;
+            case SOCK_STREAM: static_cast<m3::TcpSocket *>(s)->abort(); return 0;
             case SOCK_DGRAM:
                 // nothing to do
                 return 0;

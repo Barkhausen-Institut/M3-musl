@@ -15,8 +15,9 @@
 
 #include <base/Common.h>
 #include <base/Env.h>
-#include <stdlib.h>
+
 #include <features.h>
+#include <stdlib.h>
 
 weak void abort() {
     m3::env()->exit(1, true);

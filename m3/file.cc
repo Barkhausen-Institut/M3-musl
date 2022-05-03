@@ -13,18 +13,21 @@
  * General Public License version 2 for more details.
  */
 
+#define _GNU_SOURCE
+
 #include <base/Common.h>
+
 #include <m3/tiles/Activity.h>
 #include <m3/vfs/Dir.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/VFS.h>
-#include <fs/internal.h>
 
-#include <sys/uio.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fs/internal.h>
+#include <sys/uio.h>
 
 #include "intern.h"
 
@@ -67,7 +70,7 @@ EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count) {
 EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt) {
     ssize_t total = 0;
     for(int i = 0; i < iovcnt; ++i) {
-        char *base = static_cast<char*>(iov[i].iov_base);
+        char *base = static_cast<char *>(iov[i].iov_base);
         size_t rem = iov[i].iov_len;
         while(rem > 0) {
             try {
@@ -100,7 +103,7 @@ EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
 
     ssize_t total = 0;
     for(int i = 0; i < iovcnt; ++i) {
-        char *base = static_cast<char*>(iov[i].iov_base);
+        char *base = static_cast<char *>(iov[i].iov_base);
         size_t rem = iov[i].iov_len;
         while(rem > 0) {
             try {
@@ -188,7 +191,7 @@ EXTERN_C int __m3_close(int fd) {
     return 0;
 }
 
-EXTERN_C int __m3_fcntl(int, int cmd, ... /* arg */ ) {
+EXTERN_C int __m3_fcntl(int, int cmd, ... /* arg */) {
     switch(cmd) {
         // pretend that we support file locking
         case F_SETLK: return 0;

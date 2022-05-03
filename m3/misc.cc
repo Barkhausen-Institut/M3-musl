@@ -20,11 +20,11 @@
 #include <m3/vfs/FileTable.h>
 
 #define _GNU_SOURCE // for domainname
-#include <sys/ioctl.h>
-#include <sys/utsname.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <sys/utsname.h>
 #include <unistd.h>
 
 #include "intern.h"
@@ -41,7 +41,7 @@ EXTERN_C int __m3_uname(struct utsname *buf) {
 #elif defined(__arm__)
     strcpy(buf->machine, "ARMv7");
 #else
-#   error "Unsupported ISA"
+#    error "Unsupported ISA"
 #endif
     strcpy(buf->domainname, "localhost");
     return 0;

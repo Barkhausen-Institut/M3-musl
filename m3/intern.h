@@ -20,11 +20,11 @@
 // "restrict" is a keyword in C, but not in C++. Thus, redefine it for the inclusion of time.h
 // to the __restrict keyword of C++.
 #ifdef __cplusplus
-#define restrict __restrict
+#    define restrict __restrict
 #endif
 
-#include <sys/socket.h>
 #include <fcntl.h>
+#include <sys/socket.h>
 #include <time.h>
 
 #undef restrict
@@ -41,20 +41,19 @@ EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence);
 EXTERN_C int __m3_ftruncate(int fd, off_t length);
 EXTERN_C int __m3_truncate(const char *pathname, off_t length);
 EXTERN_C int __m3_close(int fd);
-EXTERN_C int __m3_fcntl(int fd, int cmd, ... /* arg */ );
+EXTERN_C int __m3_fcntl(int fd, int cmd, ... /* arg */);
 EXTERN_C int __m3_faccessat(int dirfd, const char *pathname, int mode, int flags);
 EXTERN_C int __m3_fsync(int fd);
 
 // directory syscalls
 EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf);
-EXTERN_C int __m3_fstatat(int dirfd, const char *pathname,
-                          struct kstat *statbuf, int flags);
+EXTERN_C int __m3_fstatat(int dirfd, const char *pathname, struct kstat *statbuf, int flags);
 EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count);
 EXTERN_C int __m3_mkdirat(int dirfd, const char *pathname, mode_t mode);
-EXTERN_C int __m3_renameat2(int olddirfd, const char *oldpath, int newdirfd,
-                            const char *newpath, unsigned int flags);
-EXTERN_C int __m3_linkat(int olddirfd, const char *oldpath,
-                         int newdirfd, const char *newpath, int flags);
+EXTERN_C int __m3_renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpath,
+                            unsigned int flags);
+EXTERN_C int __m3_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath,
+                         int flags);
 EXTERN_C int __m3_unlinkat(int dirfd, const char *pathname, int flags);
 EXTERN_C void __m3_closedir(int fd);
 EXTERN_C int __m3_chdir(const char *path);

@@ -21,15 +21,15 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef struct DebugBuf {
-    char buf[128];
-    size_t pos;
-} DebugBuf;
+    typedef struct DebugBuf {
+        char buf[128];
+        size_t pos;
+    } DebugBuf;
 
-void debug_new(DebugBuf *db);
-void debug_puts(DebugBuf *db, const char *str);
-void debug_putu(DebugBuf *db, unsigned long long n, unsigned int base);
-void debug_flush(DebugBuf *db);
+    void debug_new(DebugBuf *db);
+    void debug_puts(DebugBuf *db, const char *str);
+    void debug_putu(DebugBuf *db, unsigned long long n, unsigned int base);
+    void debug_flush(DebugBuf *db);
 
 #ifdef __cplusplus
 }

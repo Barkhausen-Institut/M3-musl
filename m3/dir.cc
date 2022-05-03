@@ -14,20 +14,23 @@
  */
 
 #include <base/Common.h>
+
 #include <m3/tiles/Activity.h>
 #include <m3/vfs/Dir.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/VFS.h>
-#include <fs/internal.h>
 
-#include <sys/stat.h>
-#include <sys/uio.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <kstat.h>
+#include <fs/internal.h>
 #include <limits.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
+// clang-format off
+#include <kstat.h> // needs to be last so that we have dev_t etc.
+// clang-format on
 
 #include "intern.h"
 
@@ -75,8 +78,7 @@ EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf) {
     }
 }
 
-EXTERN_C int __m3_fstatat(int, const char *pathname,
-                          struct kstat *statbuf, int) {
+EXTERN_C int __m3_fstatat(int, const char *pathname, struct kstat *statbuf, int) {
     m3::FileInfo info;
     m3::Errors::Code res = m3::VFS::try_stat(pathname, info);
     if(res != m3::Errors::NONE)
@@ -107,7 +109,7 @@ EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
     else
         read_first = false;
 
-    char *cur_dirp = reinterpret_cast<char*>(dirp);
+    char *cur_dirp = reinterpret_cast<char *>(dirp);
     size_t rem = count;
     while(true) {
         try {
@@ -122,7 +124,7 @@ EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
             return -__m3_posix_errno(e.code());
         }
 
-        auto *de = reinterpret_cast<struct dirent*>(cur_dirp);
+        auto *de = reinterpret_cast<struct dirent *>(cur_dirp);
         size_t namelen = strlen(open_dirs[fd].entry->name);
         size_t reclen = namelen + 1 + (sizeof(struct dirent) - sizeof(open_dirs[fd].entry->name));
         reclen = m3::Math::round_up(reclen, alignof(struct dirent));
@@ -145,8 +147,7 @@ EXTERN_C int __m3_mkdirat(int, const char *pathname, mode_t mode) {
     return -__m3_posix_errno(m3::VFS::try_mkdir(pathname, mode));
 }
 
-EXTERN_C int __m3_renameat2(int, const char *oldpath,
-                            int, const char *newpath, unsigned int) {
+EXTERN_C int __m3_renameat2(int, const char *oldpath, int, const char *newpath, unsigned int) {
     return -__m3_posix_errno(m3::VFS::try_rename(oldpath, newpath));
 }
 
