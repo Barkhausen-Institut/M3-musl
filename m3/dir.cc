@@ -190,3 +190,12 @@ EXTERN_C int __m3_fchdir(int fd) {
     }
     return 0;
 }
+
+EXTERN_C ssize_t __m3_getcwd(char *buf, size_t size) {
+    const char *cwd = m3::VFS::cwd();
+    size_t len = strlen(cwd);
+    if(len + 1 > size)
+        return -ERANGE;
+    strcpy(buf, cwd);
+    return static_cast<ssize_t>(len);
+}

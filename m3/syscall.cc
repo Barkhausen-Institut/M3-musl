@@ -113,6 +113,7 @@ static const char *syscall_name(long no) {
         case SYS_unlinkat: return "unlink";
         case SYS_chdir: return "chdir";
         case SYS_fchdir: return "fchdir";
+        case SYS_getcwd: return "getcwd";
 
         case SYS_socket: return "socket";
         case SYS_connect: return "connect";
@@ -331,9 +332,11 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #endif
         case SYS_unlinkat: res = __m3_unlinkat(a, (const char *)b, c); break;
         case SYS_chdir: res = __m3_chdir((const char *)a); break;
-        case SYS_fchdir:
-            res = __m3_fchdir(a);
+        case SYS_fchdir: res = __m3_fchdir(a); break;
+        case SYS_getcwd:
+            res = __m3_getcwd((char *)a, (size_t)b);
             break;
+
             // we don't support symlinks; so it's never a symlink
 #if defined(SYS_readlink)
         case SYS_readlink: res = -EINVAL; break;
