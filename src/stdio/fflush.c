@@ -1,5 +1,7 @@
 #include "stdio_impl.h"
 
+extern int __m3_fflush(int fd);
+
 /* stdout.c will override this if linked */
 static FILE *volatile dummy = 0;
 weak_alias(dummy, __stdout_used);
@@ -32,6 +34,11 @@ int fflush(FILE *f)
 			return EOF;
 		}
 	}
+
+	// explicitly tell our translation layer that the file should be flushed; do that even if wpos
+	// == wbase, because it could be that as far as musl is concerned the buffer is flushed, but M³
+	// still didn't do that, because it was a normal write call.
+	__m3_fflush(f->fd);
 
 	/* If reading, sync position, per POSIX */
 	if (f->rpos != f->rend) f->seek(f, f->rpos-f->rend, SEEK_CUR);
