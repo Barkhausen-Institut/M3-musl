@@ -6,6 +6,32 @@
 #include <limits.h>
 #include "glue.h"
 
+// provide our own primitives specifically for the heap. This is required because at some point we
+// want to support mmap, munmap, etc., but we need a specific implementation for the heap. The
+// specific implementation is required, because in some situations the heap is already established
+// and we just want to let the allocator know about the address and size without mapping anything.
+// Examples are applications on PEs without virtual-memory support or without pager.
+extern int __m3_heap_brk(uintptr_t addr);
+extern void *__m3_heap_mmap(void *start, size_t len, int prot, int flags, int fd, off_t off);
+extern void *__m3_heap_mremap(void *old_addr, size_t old_len, size_t new_len, int flags, ...);
+extern int __m3_heap_madvise(void *addr, size_t length, int advice);
+extern int __m3_heap_mprotect(void *addr, size_t len, int prot);
+extern int __m3_heap_munmap(void *start, size_t len);
+
+// redefine these to point to our own implementation
+#undef brk
+#undef mmap
+#undef mremap
+#undef madvise
+#undef mprotect
+#undef munmap
+#define brk __m3_heap_brk
+#define mmap __m3_heap_mmap
+#define mremap __m3_heap_mremap
+#define madvise __m3_heap_madvise
+#define mprotect __m3_heap_mprotect
+#define munmap __m3_heap_munmap
+
 __attribute__((__visibility__("hidden")))
 extern const uint16_t size_classes[];
 

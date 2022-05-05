@@ -13,12 +13,13 @@
  * General Public License version 2 for more details.
  */
 
-#include "libc.h"
-#include "pthread_impl.h"
 #include <features.h>
 #include <stddef.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "libc.h"
+#include "pthread_impl.h"
 
 extern struct pthread m3_cur_pthread;
 
@@ -34,13 +35,20 @@ int __init_tp(void *p) {
 }
 
 void __m3_init_libc(int argc, char **argv, char **envp) {
-    __progname_full = argv[0];
+    __progname_full = argv ? argv[0] : "";
     __progname = __progname_full;
     char *last_slash = strrchr(__progname, '/');
     if(last_slash)
         __progname = last_slash + 1;
 
-    __init_libc(envp, NULL);
+    static char *dummy_env[] = {NULL};
+    __init_libc(envp ? envp : dummy_env, NULL);
+}
+
+void __m3_set_args(char **argv, char **envp) {
+    __progname_full = argv[0];
+    __progname = __progname_full;
+    __environ = envp;
 }
 
 weak void __init_libc(char **envp, char *pn) {

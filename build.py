@@ -58,7 +58,7 @@ def build(gen, env):
 
     # directories with all files
     dirs = [
-        'aio', 'complex', 'conf', 'crypt', 'ctype', 'dirent', 'errno', 'fcntl', 'fenv', 'ipc',
+        'aio', 'complex', 'conf', 'crypt', 'ctype', 'dirent', 'fcntl', 'fenv', 'ipc',
         'ldso', 'legacy', 'linux', 'locale', 'math', 'misc', 'mman', 'mq', 'multibyte', 'network',
         'passwd', 'prng', 'process', 'regex', 'sched', 'search', 'select', 'setjmp', 'signal',
         'stat', 'stdio', 'stdlib', 'temp', 'termios', 'thread', 'time', 'unistd',
@@ -76,6 +76,7 @@ def build(gen, env):
         'src/exit/abort_lock.c', 'src/exit/assert.c',
         'src/exit/at_quick_exit.c', 'src/exit/quick_exit.c'
     ]
+    files += [f for f in env.glob('src/errno/*.c') if os.path.basename(f) != '__errno_location.c']
     files += [f for f in env.glob('src/internal/*.c') if os.path.basename(f) != 'libc.c']
 
     # m3-specific files
@@ -86,13 +87,30 @@ def build(gen, env):
 
     # files we want to have for bare-metal components
     simple_files  = ['src/env/__environ.c']
+    simple_files += ['src/errno/__errno_location.c']
     simple_files += ['src/exit/atexit.c', 'src/exit/exit.c']
     simple_files += env.glob('src/exit/' + isa + '/*')
     simple_files += ['src/internal/libc.c']
     simple_files += env.glob('src/string/*.c')
     simple_files += env.glob('src/string/' + isa + '/*')
-    simple_files += ['m3/debug.cc', 'm3/init.c', 'm3/lock.c', 'm3/pthread.c', 'm3/exit.cc']
-    simple_objs = env.objs(gen, simple_files)
+    for f in env.glob('src/malloc/*.c'):
+        filename = os.path.basename(f)
+        if filename != 'lite_malloc.c' and filename != 'free.c' and filename != 'realloc.c':
+            simple_files += [f]
+    simple_files += env.glob('src/malloc/mallocng/*.c')
+    simple_files += [
+        'm3/debug.cc', 'm3/exit.cc', 'm3/heap.cc', 'm3/init.c', 'm3/lock.c', 'm3/malloc.cc',
+        'm3/pthread.c'
+    ]
+
+    # disallow FPU instructions, because we use the library for e.g. TileMux as well
+    simple_env = env.clone()
+    if simple_env['ISA'] == 'x86_64':
+        simple_env['CFLAGS'] += ['-msoft-float', '-mno-sse']
+    elif simple_env['ISA'] == 'riscv':
+        simple_env['CFLAGS'] += ['-march=rv64imac']
+
+    simple_objs = simple_env.objs(gen, simple_files)
 
     # simple C library without dependencies (but also no stdio, etc.)
     lib = env.static_lib(gen, out = 'libsimplec', ins = simple_objs)
