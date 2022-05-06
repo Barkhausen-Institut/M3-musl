@@ -65,7 +65,7 @@ EXTERN_C void free(void *p) {
 }
 
 extern "C" {
-    weak_alias(malloc, musl_malloc);
-    weak_alias(realloc, musl_realloc);
-    weak_alias(free, musl_free);
+weak_alias(malloc, musl_malloc);
+weak_alias(realloc, musl_realloc);
+weak_alias(free, musl_free);
 }
