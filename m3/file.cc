@@ -58,7 +58,7 @@ EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count) {
     try {
         auto file = m3::Activity::own().files()->get(fd);
         if(auto res = file->read(buf, count))
-            return static_cast<ssize_t>(res.value());
+            return static_cast<ssize_t>(res.unwrap());
         return -EWOULDBLOCK;
     }
     catch(const m3::Exception &e) {
@@ -75,10 +75,10 @@ EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt) {
             try {
                 auto file = m3::Activity::own().files()->get(fildes);
                 auto res = file->read(base, rem);
-                if(!res.has_value())
+                if(res.is_none())
                     return total == 0 ? -EWOULDBLOCK : total;
 
-                size_t amount = res.value();
+                size_t amount = res.unwrap();
                 if(amount == 0)
                     return total;
                 rem -= amount;
@@ -109,10 +109,10 @@ EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
         while(rem > 0) {
             try {
                 auto res = file->write(base, rem);
-                if(!res.has_value())
+                if(res.is_none())
                     return total == 0 ? -EWOULDBLOCK : total;
 
-                size_t amount = res.value();
+                size_t amount = res.unwrap();
                 if(amount == 0)
                     return total;
                 rem -= amount;
@@ -131,7 +131,7 @@ EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count) {
     try {
         auto file = m3::Activity::own().files()->get(fd);
         if(auto res = file->write(buf, count))
-            return static_cast<ssize_t>(res.value());
+            return static_cast<ssize_t>(res.unwrap());
         return -EWOULDBLOCK;
     }
     catch(const m3::Exception &e) {
