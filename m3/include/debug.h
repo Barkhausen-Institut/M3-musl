@@ -21,7 +21,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef struct DebugBuf {
+__attribute__((aligned(8))) typedef struct DebugBuf {
     char buf[128];
     size_t pos;
 } DebugBuf;
