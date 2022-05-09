@@ -41,7 +41,7 @@ void __m3_init_libc(int argc, char **argv, char **envp) {
     if(last_slash)
         __progname = last_slash + 1;
 
-    static char *dummy_env[] = {NULL};
+    static char *dummy_env[] = {NULL, NULL};
     __init_libc(envp ? envp : dummy_env, NULL);
 }
 
