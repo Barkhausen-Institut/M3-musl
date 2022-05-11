@@ -132,6 +132,10 @@ static const char *syscall_name(long no) {
         case SYS_getsockname: return "getsockname";
         case SYS_getpeername: return "getpeername";
 
+        case SYS_epoll_create1: return "epoll_create";
+        case SYS_epoll_ctl: return "epoll_ctl";
+        case SYS_epoll_pwait: return "epoll_pwait";
+
         case SYS_getpid: return "getpid";
         case SYS_getuid: return "getuid";
 #if defined(SYS_getuid32)
@@ -339,8 +343,12 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_unlinkat: res = __m3_unlinkat(a, (const char *)b, c); break;
         case SYS_chdir: res = __m3_chdir((const char *)a); break;
         case SYS_fchdir: res = __m3_fchdir(a); break;
-        case SYS_getcwd:
-            res = __m3_getcwd((char *)a, (size_t)b);
+        case SYS_getcwd: res = __m3_getcwd((char *)a, (size_t)b); break;
+
+        case SYS_epoll_create1: res = __m3_epoll_create(a); break;
+        case SYS_epoll_ctl: res = __m3_epoll_ctl(a, b, c, (struct epoll_event *)d); break;
+        case SYS_epoll_pwait:
+            res = __m3_epoll_pwait(a, (struct epoll_event *)b, c, d, (const sigset_t *)e);
             break;
 
             // we don't support symlinks; so it's never a symlink

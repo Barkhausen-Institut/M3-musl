@@ -189,6 +189,7 @@ EXTERN_C int __m3_truncate(const char *pathname, off_t length) {
 }
 
 EXTERN_C int __m3_close(int fd) {
+    __m3_epoll_close(fd);
     __m3_socket_close(fd);
     __m3_closedir(fd);
     m3::Activity::own().files()->remove(fd);
