@@ -130,7 +130,9 @@ EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
 EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count) {
     try {
         auto file = m3::Activity::own().files()->get(fd);
-        if(auto res = file->write(buf, count))
+        // use write_all here, because some tools seem to expect that write can't write less than
+        // requested and we don't really lose anything by calling write_all instead of write.
+        if(auto res = file->write_all(buf, count))
             return static_cast<ssize_t>(res.unwrap());
         return -EWOULDBLOCK;
     }
