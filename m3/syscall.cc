@@ -83,7 +83,10 @@ static const char *syscall_name(long no) {
         case SYS_stat64: return "stat";
 #endif
 #if defined(SYS_fstatat)
-        case SYS_fstatat: return "stat";
+        case SYS_fstatat: return "fstat";
+#endif
+#if defined(SYS_newfstatat)
+        case SYS_newfstatat: return "newfstatat";
 #endif
 #if defined(SYS_lstat)
         case SYS_lstat: return "lstat";
@@ -306,6 +309,9 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #endif
 #if defined(SYS_fstatat)
         case SYS_fstatat: res = __m3_fstatat(a, (const char *)b, (struct kstat *)c, d); break;
+#endif
+#if defined(SYS_newfstatat)
+        case SYS_newfstatat: res = __m3_fstatat(a, (const char *)b, (struct kstat *)c, d); break;
 #endif
         case SYS_ftruncate: res = __m3_ftruncate(a, b); break;
         case SYS_truncate: res = __m3_truncate((const char *)a, b); break;
