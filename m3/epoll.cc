@@ -56,7 +56,7 @@ EXTERN_C int __m3_epoll_create(int) {
     for(size_t i = 0; i < MAX_EPOLL_DESCS; ++i) {
         if(descs[i] == nullptr) {
             descs[i] = new EPollDesc();
-            return m3::FileTable::MAX_FDS + i;
+            return static_cast<int>(m3::FileTable::MAX_FDS + i);
         }
     }
 
