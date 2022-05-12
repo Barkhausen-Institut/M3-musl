@@ -57,7 +57,7 @@ static const char *syscall_name(long no) {
         case SYS_write: return "write";
         case SYS_writev: return "writev";
 #if defined(SYS__llseek)
-        case SYS__llseek:
+        case SYS__llseek: return "llseek";
 #endif
         case SYS_lseek: return "lseek";
         case SYS_ftruncate: return "ftruncate";
@@ -281,6 +281,7 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
             assert(b == 0);
             res = __m3_lseek(a, c, e);
             *(off_t *)d = res;
+            res = res < 0 ? -1 : 0;
             break;
         }
 #endif
