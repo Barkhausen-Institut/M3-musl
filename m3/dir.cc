@@ -13,13 +13,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-
-#include <m3/tiles/Activity.h>
-#include <m3/vfs/Dir.h>
-#include <m3/vfs/File.h>
-#include <m3/vfs/FileTable.h>
-#include <m3/vfs/VFS.h>
+#include <m3/Compat.h>
 
 #include <dirent.h>
 #include <errno.h>
@@ -35,12 +29,11 @@
 #include "intern.h"
 
 struct OpenDir {
-    m3::Dir *dir;
+    void *dir;
     m3::Dir::Entry *entry;
 };
 
-static const size_t MAX_DIRS = 16;
-static OpenDir open_dirs[MAX_DIRS];
+static OpenDir open_dirs[m3::FileTable::MAX_FDS];
 
 static void translate_stat(m3::FileInfo &info, struct kstat *statbuf) {
     statbuf->st_dev = info.devno;
@@ -62,25 +55,17 @@ static void translate_stat(m3::FileInfo &info, struct kstat *statbuf) {
 }
 
 EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf) {
-    try {
-        auto file = m3::Activity::own().files()->get(fd);
-
-        m3::FileInfo info;
-        m3::Errors::Code res = file->try_stat(info);
-        if(res != m3::Errors::NONE)
-            return -__m3_posix_errno(res);
-
-        translate_stat(info, statbuf);
-        return 0;
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    m3::FileInfo info;
+    m3::Errors::Code res = __m3c_fstat(fd, &info);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
+    translate_stat(info, statbuf);
+    return 0;
 }
 
 EXTERN_C int __m3_fstatat(int, const char *pathname, struct kstat *statbuf, int) {
     m3::FileInfo info;
-    m3::Errors::Code res = m3::VFS::try_stat(pathname, info);
+    m3::Errors::Code res = __m3c_stat(pathname, &info);
     if(res != m3::Errors::NONE)
         return -__m3_posix_errno(res);
     translate_stat(info, statbuf);
@@ -88,19 +73,15 @@ EXTERN_C int __m3_fstatat(int, const char *pathname, struct kstat *statbuf, int)
 }
 
 EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
-    if(static_cast<size_t>(fd) >= MAX_DIRS)
+    if(static_cast<size_t>(fd) >= m3::FileTable::MAX_FDS)
         return -ENOSPC;
 
     bool read_first = true;
     if(open_dirs[fd].dir == nullptr) {
-        try {
-            m3::Activity::own().files()->get(fd);
-            open_dirs[fd].dir = new m3::Dir(fd);
-            open_dirs[fd].entry = new m3::Dir::Entry;
-        }
-        catch(const m3::Exception &e) {
-            return -__m3_posix_errno(e.code());
-        }
+        m3::Errors::Code res = __m3c_opendir(fd, &open_dirs[fd].dir);
+        if(res != m3::Errors::NONE)
+            return -__m3_posix_errno(res);
+        open_dirs[fd].entry = static_cast<m3::Dir::Entry *>(malloc(sizeof(m3::Dir::Entry)));
     }
     // have we already seen EOF?
     else if(open_dirs[fd].entry == nullptr)
@@ -112,16 +93,16 @@ EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
     char *cur_dirp = reinterpret_cast<char *>(dirp);
     size_t rem = count;
     while(true) {
-        try {
-            if(read_first && !open_dirs[fd].dir->readdir(*open_dirs[fd].entry)) {
+        if(read_first) {
+            m3::Errors::Code res = __m3c_readdir(open_dirs[fd].dir, open_dirs[fd].entry);
+            if(res == m3::Errors::END_OF_FILE) {
                 // EOF; remember that we've seen it
-                delete open_dirs[fd].entry;
+                free(open_dirs[fd].entry);
                 open_dirs[fd].entry = nullptr;
                 break;
             }
-        }
-        catch(const m3::Exception &e) {
-            return -__m3_posix_errno(e.code());
+            else if(res != m3::Errors::NONE)
+                return -__m3_posix_errno(res);
         }
 
         auto *de = reinterpret_cast<struct dirent *>(cur_dirp);
@@ -144,58 +125,45 @@ EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
 }
 
 EXTERN_C int __m3_mkdirat(int, const char *pathname, mode_t mode) {
-    return -__m3_posix_errno(m3::VFS::try_mkdir(pathname, mode));
+    return -__m3_posix_errno(__m3c_mkdir(pathname, mode));
 }
 
 EXTERN_C int __m3_renameat2(int, const char *oldpath, int, const char *newpath, unsigned int) {
-    return -__m3_posix_errno(m3::VFS::try_rename(oldpath, newpath));
+    return -__m3_posix_errno(__m3c_rename(oldpath, newpath));
 }
 
 EXTERN_C int __m3_linkat(int, const char *oldpath, int, const char *newpath, int) {
-    return -__m3_posix_errno(m3::VFS::try_link(oldpath, newpath));
+    return -__m3_posix_errno(__m3c_link(oldpath, newpath));
 }
 
 EXTERN_C int __m3_unlinkat(int, const char *pathname, int flags) {
     if(flags & AT_REMOVEDIR)
-        return -__m3_posix_errno(m3::VFS::try_rmdir(pathname));
+        return -__m3_posix_errno(__m3c_rmdir(pathname));
     else
-        return -__m3_posix_errno(m3::VFS::try_unlink(pathname));
+        return -__m3_posix_errno(__m3c_unlink(pathname));
 }
 
 EXTERN_C void __m3_closedir(int fd) {
-    if(static_cast<size_t>(fd) < MAX_DIRS) {
-        delete open_dirs[fd].dir;
-        delete open_dirs[fd].entry;
+    if(static_cast<size_t>(fd) < m3::FileTable::MAX_FDS && open_dirs[fd].dir != nullptr) {
+        __m3c_closedir(open_dirs[fd].dir);
+        free(open_dirs[fd].entry);
         open_dirs[fd].dir = nullptr;
         open_dirs[fd].entry = nullptr;
     }
 }
 
 EXTERN_C int __m3_chdir(const char *path) {
-    try {
-        m3::VFS::set_cwd(path);
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
-    return 0;
+    return -__m3_posix_errno(__m3c_chdir(path));
 }
 
 EXTERN_C int __m3_fchdir(int fd) {
-    try {
-        m3::VFS::set_cwd(fd);
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
-    return 0;
+    return -__m3_posix_errno(__m3c_fchdir(fd));
 }
 
 EXTERN_C ssize_t __m3_getcwd(char *buf, size_t size) {
-    const char *cwd = m3::VFS::cwd();
-    size_t len = strlen(cwd);
-    if(len + 1 > size)
-        return -ERANGE;
-    strcpy(buf, cwd);
+    size_t len = size;
+    m3::Errors::Code res = __m3c_getcwd(buf, &len);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
     return static_cast<ssize_t>(len);
 }

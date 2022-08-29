@@ -13,12 +13,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-
-#include <m3/net/TcpSocket.h>
-#include <m3/net/UdpSocket.h>
-#include <m3/session/NetworkManager.h>
-#include <m3/vfs/FileTable.h>
+#include <m3/Compat.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -29,56 +24,40 @@
 #include "intern.h"
 
 struct OpenSocket {
-    explicit OpenSocket() : type(-1), listen_port() {
+    explicit OpenSocket() : type(INVALID), listen_port() {
     }
 
-    int type;
+    CompatSock type;
     int listen_port;
 };
 
 static OpenSocket sockets[m3::FileTable::MAX_FDS];
-static m3::NetworkManager *netmng = nullptr;
 
 EXTERN_C int __m3_posix_errno(int m3_error);
 
-EXTERN_C int __m3_init_netmng(const char *name) {
-    if(!netmng) {
-        try {
-            netmng = new m3::NetworkManager(name);
-        }
-        catch(const m3::Exception &e) {
-            return -__m3_posix_errno(e.code());
-        }
-    }
-    return 0;
-}
-
-static int init_netmng() {
-    return __m3_init_netmng("net");
-}
-
-static m3::Socket *get_socket(int fd) {
+static bool check_socket(int fd) {
     if(static_cast<size_t>(fd) >= ARRAY_SIZE(sockets))
-        return nullptr;
-    if(sockets[fd].type == -1)
-        return nullptr;
-    try {
-        return static_cast<m3::Socket *>(m3::Activity::own().files()->get(fd));
-    }
-    catch(const m3::Exception &) {
-        return nullptr;
-    }
+        return false;
+    if(sockets[fd].type == INVALID)
+        return false;
+    return true;
 }
 
-static m3::Endpoint sockaddr_to_ep(const struct sockaddr *addr, socklen_t addrlen) {
+static CompatEndpoint sockaddr_to_ep(const struct sockaddr *addr, socklen_t addrlen) {
+    CompatEndpoint ep = {
+        .addr = 0,
+        .port = 0,
+    };
     if(addrlen != sizeof(struct sockaddr_in))
-        return m3::Endpoint::unspecified();
+        return ep;
 
     auto addr_in = reinterpret_cast<const struct sockaddr_in *>(addr);
-    return m3::Endpoint(m3::IpAddr(ntohl(addr_in->sin_addr.s_addr)), ntohs(addr_in->sin_port));
+    ep.addr = ntohl(addr_in->sin_addr.s_addr);
+    ep.port = ntohs(addr_in->sin_port);
+    return ep;
 }
 
-static int ep_to_sockaddr(const m3::Endpoint &ep, struct sockaddr *addr, socklen_t *addrlen) {
+static int ep_to_sockaddr(CompatEndpoint &ep, struct sockaddr *addr, socklen_t *addrlen) {
     if(*addrlen < sizeof(struct sockaddr_in))
         return -ENOMEM;
 
@@ -86,136 +65,111 @@ static int ep_to_sockaddr(const m3::Endpoint &ep, struct sockaddr *addr, socklen
     memset(addr_in, 0, sizeof(sockaddr_in));
     addr_in->sin_family = AF_INET;
     addr_in->sin_port = ep.port;
-    addr_in->sin_addr.s_addr = htonl(ep.addr.addr());
+    addr_in->sin_addr.s_addr = htonl(ep.addr);
     *addrlen = sizeof(struct sockaddr_in);
     return 0;
 }
 
 EXTERN_C int __m3_socket(int domain, int type, int) {
-    int res;
-    if((res = init_netmng()) < 0)
-        return res;
-
     if(domain != AF_INET)
         return -ENOTSUP;
 
-    m3::File *file = nullptr;
-    try {
-        switch(type & ~(SOCK_CLOEXEC | SOCK_NONBLOCK)) {
-            case SOCK_STREAM: file = m3::TcpSocket::create(*netmng).release(); break;
-            case SOCK_DGRAM: file = m3::UdpSocket::create(*netmng).release(); break;
-            default: return -EPROTONOSUPPORT;
-        }
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
+    CompatSock stype;
+    switch(type & ~(SOCK_CLOEXEC | SOCK_NONBLOCK)) {
+        case SOCK_STREAM: stype = CompatSock::STREAM; break;
+        case SOCK_DGRAM: stype = CompatSock::DGRAM; break;
+        default: return -EPROTONOSUPPORT;
     }
 
-    fd_t fd = file->fd();
-    assert(sockets[fd].type == -1);
-    sockets[fd].type = type & ~(SOCK_CLOEXEC | SOCK_NONBLOCK);
+    int fd;
+    m3::Errors::Code res = __m3c_socket(stype, &fd);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
+
+    assert(sockets[fd].type == INVALID);
+    sockets[fd].type = stype;
     sockets[fd].listen_port = 0;
     return fd;
 }
 
 EXTERN_C int __m3_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen) {
-    auto *s = get_socket(fd);
-    if(!s)
+    if(!check_socket(fd))
         return -EBADF;
-
-    m3::Endpoint ep = s->local_endpoint();
+    CompatEndpoint ep;
+    m3::Errors::Code res = __m3c_get_local_ep(fd, sockets[fd].type, &ep);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
     return ep_to_sockaddr(ep, addr, addrlen);
 }
 
 EXTERN_C int __m3_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen) {
-    auto *s = get_socket(fd);
-    if(!s)
+    if(!check_socket(fd))
         return -EBADF;
-
-    m3::Endpoint ep = s->remote_endpoint();
+    CompatEndpoint ep;
+    m3::Errors::Code res = __m3c_get_remote_ep(fd, sockets[fd].type, &ep);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
     return ep_to_sockaddr(ep, addr, addrlen);
 }
 
 EXTERN_C int __m3_bind(int fd, const struct sockaddr *addr, socklen_t addrlen) {
-    auto *s = get_socket(fd);
-    if(!s)
+    if(!check_socket(fd))
         return -EBADF;
 
     auto ep = sockaddr_to_ep(addr, addrlen);
-    if(ep == m3::Endpoint::unspecified())
+    if(ep.addr == 0 && ep.port == 0)
         return -EINVAL;
 
-    try {
-        switch(sockets[fd].type) {
-            case SOCK_STREAM:
-                // just remember the port for the listen call
-                sockets[fd].listen_port = ep.port;
-                return 0;
-            case SOCK_DGRAM: static_cast<m3::UdpSocket *>(s)->bind(ep.port); return 0;
-        }
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
+    switch(sockets[fd].type) {
+        case CompatSock::STREAM:
+            // just remember the port for the listen call
+            sockets[fd].listen_port = ep.port;
+            return 0;
+        default:
+        case CompatSock::DGRAM: return -__m3_posix_errno(__m3c_bind_dgram(fd, &ep));
     }
     UNREACHED;
 }
 
 EXTERN_C int __m3_listen(int fd, int) {
-    auto *s = get_socket(fd);
-    if(!s)
+    if(!check_socket(fd))
         return -EBADF;
 
     switch(sockets[fd].type) {
-        case SOCK_STREAM:
+        case CompatSock::STREAM:
             // don't do anything; accept will start listening
             return 0;
-        case SOCK_DGRAM: return -ENOTSUP;
+        default:
+        case CompatSock::DGRAM: return -ENOTSUP;
     }
     UNREACHED;
 }
 
 EXTERN_C int __m3_accept(int fd, struct sockaddr *addr, socklen_t *addrlen) {
-    auto *s = get_socket(fd);
-    if(!s)
+    if(!check_socket(fd))
         return -EBADF;
-    if(sockets[fd].type != SOCK_STREAM)
+    if(sockets[fd].type != CompatSock::STREAM)
         return -ENOTSUP;
 
-    try {
-        // create a new socket for the to-be-accepted client
-        int cfd = __m3_socket(AF_INET, SOCK_STREAM, 0);
-        if(cfd < 0)
-            return cfd;
+    int cfd;
+    CompatEndpoint ep;
+    m3::Errors::Code res = __m3c_accept_stream(sockets[fd].listen_port, &cfd, &ep);
+    if(res != m3::Errors::NONE)
+        return res;
 
-        // put the socket into listen mode
-        auto *cs = static_cast<m3::TcpSocket *>(get_socket(cfd));
-        assert(cs != nullptr);
-        try {
-            cs->listen(sockets[fd].listen_port);
-        }
-        catch(const m3::Exception &e) {
+    assert(sockets[cfd].type == INVALID);
+    sockets[cfd].type = CompatSock::STREAM;
+    sockets[cfd].listen_port = 0;
+
+    // retrieve address
+    if(addr) {
+        int res = ep_to_sockaddr(ep, addr, addrlen);
+        if(res < 0) {
             __m3_socket_close(cfd);
-            return -__m3_posix_errno(e.code());
+            return res;
         }
-
-        // accept the client connection
-        m3::Endpoint ep;
-        cs->accept(&ep);
-
-        // retrieve address
-        if(addr) {
-            int res = ep_to_sockaddr(cs->remote_endpoint(), addr, addrlen);
-            if(res < 0) {
-                __m3_socket_close(cfd);
-                return res;
-            }
-        }
-        return cfd;
     }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
-    UNREACHED;
+    return cfd;
 }
 
 EXTERN_C int __m3_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int flags) {
@@ -225,21 +179,14 @@ EXTERN_C int __m3_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int
 }
 
 EXTERN_C int __m3_connect(int fd, const struct sockaddr *addr, socklen_t addrlen) {
-    auto *s = get_socket(fd);
-    if(!s)
+    if(!check_socket(fd))
         return -EBADF;
 
     auto ep = sockaddr_to_ep(addr, addrlen);
-    if(ep == m3::Endpoint::unspecified())
+    if(ep.addr == 0 && ep.port == 0)
         return -EINVAL;
 
-    try {
-        s->connect(ep);
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
-    return 0;
+    return -__m3_posix_errno(__m3c_connect(fd, sockets[fd].type, &ep));
 }
 
 EXTERN_C ssize_t __m3_sendto(int fd, const void *buf, size_t len, int flags,
@@ -248,29 +195,20 @@ EXTERN_C ssize_t __m3_sendto(int fd, const void *buf, size_t len, int flags,
         return -ENOTSUP;
     if(dest_addr == nullptr)
         return __m3_write(fd, buf, len);
-
-    auto *s = get_socket(fd);
-    if(!s)
+    if(!check_socket(fd))
         return -EBADF;
 
-    try {
-        switch(sockets[fd].type) {
-            case SOCK_STREAM:
-                return static_cast<ssize_t>(s->send(buf, len).unwrap_or(static_cast<size_t>(-1)));
-            case SOCK_DGRAM: {
-                auto ep = sockaddr_to_ep(dest_addr, addrlen);
-                if(ep == m3::Endpoint::unspecified())
-                    return -EINVAL;
-                auto udp_sock = static_cast<m3::UdpSocket *>(s);
-                return static_cast<ssize_t>(
-                    udp_sock->send_to(buf, len, ep).unwrap_or(static_cast<size_t>(-1)));
-            }
-        }
+    CompatEndpoint ep;
+    if(sockets[fd].type == CompatSock::DGRAM) {
+        ep = sockaddr_to_ep(dest_addr, addrlen);
+        if(ep.addr == 0 && ep.port == 0)
+            return -EINVAL;
     }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
-    UNREACHED;
+
+    m3::Errors::Code res = __m3c_sendto(fd, sockets[fd].type, buf, &len, &ep);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
+    return static_cast<ssize_t>(len);
 }
 
 EXTERN_C ssize_t __m3_sendmsg(int fd, const struct msghdr *msg, int flags) {
@@ -287,41 +225,19 @@ EXTERN_C ssize_t __m3_recvfrom(int fd, void *buf, size_t len, int flags, struct 
         return -ENOTSUP;
     if(src_addr == nullptr)
         return __m3_read(fd, buf, len);
-
-    auto *s = get_socket(fd);
-    if(!s)
+    if(!check_socket(fd))
         return -EBADF;
 
-    m3::Endpoint ep;
-    ssize_t res = 0;
-    try {
-        switch(sockets[fd].type) {
-            case SOCK_STREAM:
-                res = static_cast<ssize_t>(s->recv(buf, len).unwrap_or(static_cast<size_t>(-1)));
-                ep = s->remote_endpoint();
-                break;
-            case SOCK_DGRAM: {
-                auto udp_sock = static_cast<m3::UdpSocket *>(s);
-                if(auto recv_res = udp_sock->recv_from(buf, len)) {
-                    res = static_cast<ssize_t>(recv_res.unwrap().first);
-                    ep = recv_res.unwrap().second;
-                }
-                else
-                    res = -1;
-                break;
-            }
-        }
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
-
+    CompatEndpoint ep;
+    m3::Errors::Code res = __m3c_recvfrom(fd, sockets[fd].type, buf, &len, &ep);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
     if(src_addr) {
         int conv_res = ep_to_sockaddr(ep, src_addr, addrlen);
         if(conv_res < 0)
             return conv_res;
     }
-    return res;
+    return static_cast<ssize_t>(len);
 }
 
 EXTERN_C ssize_t __m3_recvmsg(int fd, struct msghdr *msg, int flags) {
@@ -335,30 +251,23 @@ EXTERN_C ssize_t __m3_recvmsg(int fd, struct msghdr *msg, int flags) {
 EXTERN_C int __m3_shutdown(int fd, int how) {
     if(how != SHUT_RDWR)
         return -ENOTSUP;
-
-    auto *s = get_socket(fd);
-    if(!s)
+    if(!check_socket(fd))
         return -EBADF;
 
-    try {
-        switch(sockets[fd].type) {
-            case SOCK_STREAM: static_cast<m3::TcpSocket *>(s)->abort(); return 0;
-            case SOCK_DGRAM:
-                // nothing to do
-                return 0;
-        }
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
+    switch(sockets[fd].type) {
+        case CompatSock::STREAM: return -__m3_posix_errno(__m3c_abort_stream(fd));
+        default:
+        case CompatSock::DGRAM:
+            // nothing to do
+            return 0;
     }
     UNREACHED;
 }
 
 EXTERN_C void __m3_socket_close(int fd) {
-    auto *s = get_socket(fd);
-    if(!s)
+    if(!check_socket(fd))
         return;
 
-    sockets[fd].type = -1;
+    sockets[fd].type = INVALID;
     sockets[fd].listen_port = 0;
 }

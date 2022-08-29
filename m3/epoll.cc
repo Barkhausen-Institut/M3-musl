@@ -13,28 +13,18 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-
-#include <m3/vfs/File.h>
-#include <m3/vfs/FileTable.h>
-#include <m3/vfs/Waiter.h>
+#include <m3/Compat.h>
 
 #include <errno.h>
 #include <sys/epoll.h>
 
-#include "base/time/Duration.h"
 #include "intern.h"
 
 constexpr size_t MAX_EPOLL_DESCS = 4;
 constexpr size_t MAX_EPOLL_FILES = 8;
 
 struct EPollDesc {
-    explicit EPollDesc() : waiter(), data() {
-        for(size_t i = 0; i < MAX_EPOLL_FILES; ++i)
-            data[i].fd = -1;
-    }
-
-    m3::FileWaiter waiter;
+    void *waiter;
     struct {
         fd_t fd;
         epoll_data data;
@@ -55,7 +45,17 @@ static EPollDesc *get_desc(int epfd) {
 EXTERN_C int __m3_epoll_create(int) {
     for(size_t i = 0; i < MAX_EPOLL_DESCS; ++i) {
         if(descs[i] == nullptr) {
-            descs[i] = new EPollDesc();
+            descs[i] = static_cast<EPollDesc *>(malloc(sizeof(EPollDesc)));
+            descs[i]->waiter = nullptr;
+            for(size_t j = 0; j < MAX_EPOLL_FILES; ++j)
+                descs[i]->data[j].fd = -1;
+
+            m3::Errors::Code res = __m3c_waiter_create(&descs[i]->waiter);
+            if(res != m3::Errors::NONE) {
+                free(descs[i]);
+                descs[i] = nullptr;
+                return -__m3_posix_errno(res);
+            }
             return static_cast<int>(m3::FileTable::MAX_FDS + i);
         }
     }
@@ -90,12 +90,38 @@ EXTERN_C int __m3_epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
     }
 
     switch(op) {
-        case EPOLL_CTL_ADD: desc->waiter.add(fd, events); break;
-        case EPOLL_CTL_MOD: desc->waiter.set(fd, events); break;
-        case EPOLL_CTL_DEL: desc->waiter.remove(fd); break;
+        case EPOLL_CTL_ADD: __m3c_waiter_add(desc->waiter, fd, events); break;
+        case EPOLL_CTL_MOD: __m3c_waiter_set(desc->waiter, fd, events); break;
+        case EPOLL_CTL_DEL: __m3c_waiter_rem(desc->waiter, fd); break;
     }
 
     return 0;
+}
+
+struct pwait {
+    int idx;
+    int maxevents;
+    EPollDesc *desc;
+    struct epoll_event *events;
+};
+
+static void pwait_fetcher(void *p, int fd, uint fdevs) {
+    pwait *pwait = static_cast<struct pwait *>(p);
+    if(pwait->idx < pwait->maxevents) {
+        pwait->events[pwait->idx].events = 0;
+        if(fdevs & m3::File::INPUT)
+            pwait->events[pwait->idx].events |= EPOLLIN;
+        if(fdevs & m3::File::OUTPUT)
+            pwait->events[pwait->idx].events |= EPOLLOUT;
+        for(size_t i = 0; i < MAX_EPOLL_FILES; ++i) {
+            if(pwait->desc->data[i].fd == fd) {
+                memcpy(&pwait->events[pwait->idx].data, &pwait->desc->data[i].data,
+                       sizeof(epoll_data));
+                break;
+            }
+        }
+        pwait->idx++;
+    }
 }
 
 EXTERN_C int __m3_epoll_pwait(int epfd, struct epoll_event *events, int maxevents, int timeout,
@@ -105,35 +131,22 @@ EXTERN_C int __m3_epoll_pwait(int epfd, struct epoll_event *events, int maxevent
         return -EBADF;
 
     if(timeout == -1)
-        desc->waiter.wait();
+        __m3c_waiter_wait(desc->waiter);
     else {
         // for 0 (= return immediately), we use a very short timeout to check once and count the
         // ready file descriptors
-        auto m3_timeout =
-            timeout == 0
-                ? m3::TimeDuration::from_nanos(1)
-                : m3::TimeDuration::from_millis(static_cast<m3::TimeDuration::raw_t>(timeout));
-        desc->waiter.wait_for(m3_timeout);
+        uint64_t m3_timeout = timeout == 0 ? 1 : static_cast<uint64_t>(timeout) * 1'000'000;
+        __m3c_waiter_waitfor(desc->waiter, m3_timeout);
     }
 
-    int idx = 0;
-    desc->waiter.foreach_ready([desc, events, &idx, maxevents](int fd, uint fdevs) {
-        if(idx < maxevents) {
-            events[idx].events = 0;
-            if(fdevs & m3::File::INPUT)
-                events[idx].events |= EPOLLIN;
-            if(fdevs & m3::File::OUTPUT)
-                events[idx].events |= EPOLLOUT;
-            for(size_t i = 0; i < MAX_EPOLL_FILES; ++i) {
-                if(desc->data[i].fd == fd) {
-                    memcpy(&events[idx].data, &desc->data[i].data, sizeof(epoll_data));
-                    break;
-                }
-            }
-            idx++;
-        }
-    });
-    return idx;
+    pwait arg = {
+        .idx = 0,
+        .maxevents = maxevents,
+        .desc = desc,
+        .events = events,
+    };
+    __m3c_waiter_fetch(desc->waiter, &arg, &pwait_fetcher);
+    return arg.idx;
 }
 
 EXTERN_C int __m3_epoll_close(int epfd) {
@@ -142,7 +155,8 @@ EXTERN_C int __m3_epoll_close(int epfd) {
         return -EBADF;
 
     int idx = epfd - m3::FileTable::MAX_FDS;
-    delete descs[idx];
+    __m3c_waiter_destroy(descs[idx]->waiter);
+    free(descs[idx]);
     descs[idx] = nullptr;
     return 0;
 }

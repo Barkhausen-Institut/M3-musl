@@ -15,13 +15,7 @@
 
 #define _GNU_SOURCE
 
-#include <base/Common.h>
-
-#include <m3/tiles/Activity.h>
-#include <m3/vfs/Dir.h>
-#include <m3/vfs/File.h>
-#include <m3/vfs/FileTable.h>
-#include <m3/vfs/VFS.h>
+#include <m3/Compat.h>
 
 #include <dirent.h>
 #include <errno.h>
@@ -46,24 +40,19 @@ EXTERN_C int __m3_openat(int, const char *pathname, int flags, mode_t) {
     if(flags & O_APPEND)
         m3_flags |= m3::FILE_APPEND;
 
-    try {
-        return m3::VFS::open(pathname, m3_flags).release()->fd();
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    int fd;
+    m3::Errors::Code res = __m3c_open(pathname, m3_flags, &fd);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
+    return fd;
 }
 
 EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count) {
-    try {
-        auto file = m3::Activity::own().files()->get(fd);
-        if(auto res = file->read(buf, count))
-            return static_cast<ssize_t>(res.unwrap());
-        return -EWOULDBLOCK;
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    size_t read = count;
+    m3::Errors::Code res = __m3c_read(fd, buf, &read);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
+    return static_cast<ssize_t>(read);
 }
 
 EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt) {
@@ -72,84 +61,54 @@ EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt) {
         char *base = static_cast<char *>(iov[i].iov_base);
         size_t rem = iov[i].iov_len;
         while(rem > 0) {
-            try {
-                auto file = m3::Activity::own().files()->get(fildes);
-                auto res = file->read(base, rem);
-                if(res.is_none())
-                    return total == 0 ? -EWOULDBLOCK : total;
+            ssize_t res = __m3_read(fildes, base, rem);
+            if(res == -EWOULDBLOCK)
+                return total == 0 ? -EWOULDBLOCK : total;
+            else if(res < 0)
+                return res;
+            else if(res == 0)
+                return total;
 
-                size_t amount = res.unwrap();
-                if(amount == 0)
-                    return total;
-                rem -= amount;
-                base += amount;
-                total += static_cast<ssize_t>(amount);
-            }
-            catch(const m3::Exception &e) {
-                return -__m3_posix_errno(e.code());
-            }
-        }
-    }
-    return total;
-}
-
-EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
-    m3::File *file;
-    try {
-        file = m3::Activity::own().files()->get(fildes);
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
-
-    ssize_t total = 0;
-    for(int i = 0; i < iovcnt; ++i) {
-        char *base = static_cast<char *>(iov[i].iov_base);
-        size_t rem = iov[i].iov_len;
-        while(rem > 0) {
-            try {
-                auto res = file->write(base, rem);
-                if(res.is_none())
-                    return total == 0 ? -EWOULDBLOCK : total;
-
-                size_t amount = res.unwrap();
-                if(amount == 0)
-                    return total;
-                rem -= amount;
-                base += amount;
-                total += static_cast<ssize_t>(amount);
-            }
-            catch(const m3::Exception &e) {
-                return -__m3_posix_errno(e.code());
-            }
+            rem -= static_cast<size_t>(res);
+            base += res;
+            total += res;
         }
     }
     return total;
 }
 
 EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count) {
-    try {
-        auto file = m3::Activity::own().files()->get(fd);
-        // use write_all here, because some tools seem to expect that write can't write less than
-        // requested and we don't really lose anything by calling write_all instead of write.
-        if(auto res = file->write_all(buf, count))
-            return static_cast<ssize_t>(res.unwrap());
-        return -EWOULDBLOCK;
+    size_t written = count;
+    m3::Errors::Code res = __m3c_write(fd, buf, &written);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
+    return static_cast<ssize_t>(written);
+}
+
+EXTERN_C ssize_t __m3_writev(int fildes, const struct iovec *iov, int iovcnt) {
+    ssize_t total = 0;
+    for(int i = 0; i < iovcnt; ++i) {
+        char *base = static_cast<char *>(iov[i].iov_base);
+        size_t rem = iov[i].iov_len;
+        while(rem > 0) {
+            ssize_t res = __m3_write(fildes, base, rem);
+            if(res == -EWOULDBLOCK)
+                return total == 0 ? -EWOULDBLOCK : total;
+            else if(res < 0)
+                return res;
+            else if(res == 0)
+                return total;
+
+            rem -= static_cast<size_t>(res);
+            base += res;
+            total += res;
+        }
     }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    return total;
 }
 
 EXTERN_C int __m3_fflush(int fd) {
-    try {
-        m3::File *file = m3::Activity::own().files()->get(fd);
-        file->flush();
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
-    return 0;
+    return -__m3_posix_errno(__m3c_fflush(fd));
 }
 
 EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence) {
@@ -157,42 +116,25 @@ EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence) {
     static_assert(SEEK_CUR == M3FS_SEEK_CUR, "SEEK_CUR mismatch");
     static_assert(SEEK_END == M3FS_SEEK_END, "SEEK_END mismatch");
 
-    try {
-        auto file = m3::Activity::own().files()->get(fd);
-        return static_cast<off_t>(file->seek(static_cast<size_t>(offset), whence));
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    m3::Errors::Code res = __m3c_lseek(fd, &offset, whence);
+    if(res != m3::Errors::NONE)
+        return -__m3_posix_errno(res);
+    return offset;
 }
 
 EXTERN_C int __m3_ftruncate(int fd, off_t length) {
-    try {
-        auto file = m3::Activity::own().files()->get(fd);
-        file->truncate(static_cast<size_t>(length));
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
-    return 0;
+    return -__m3_posix_errno(__m3c_ftruncate(fd, length));
 }
 
 EXTERN_C int __m3_truncate(const char *pathname, off_t length) {
-    try {
-        auto file = m3::VFS::open(pathname, m3::FILE_W);
-        file->truncate(static_cast<size_t>(length));
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
-    return 0;
+    return -__m3_posix_errno(__m3c_truncate(pathname, length));
 }
 
 EXTERN_C int __m3_close(int fd) {
     __m3_epoll_close(fd);
     __m3_socket_close(fd);
     __m3_closedir(fd);
-    m3::Activity::own().files()->remove(fd);
+    __m3c_close(fd);
     return 0;
 }
 
@@ -207,7 +149,7 @@ EXTERN_C int __m3_fcntl(int, int cmd, ... /* arg */) {
 
 EXTERN_C int __m3_faccessat(int, const char *pathname, int mode, int) {
     m3::FileInfo info;
-    m3::Errors::Code res = m3::VFS::try_stat(pathname, info);
+    m3::Errors::Code res = __m3c_stat(pathname, &info);
     if(res == m3::Errors::NONE) {
         if(mode == R_OK || mode == F_OK)
             return (info.mode & M3FS_MODE_READ) != 0 ? 0 : EPERM;
@@ -220,12 +162,5 @@ EXTERN_C int __m3_faccessat(int, const char *pathname, int mode, int) {
 }
 
 EXTERN_C int __m3_fsync(int fd) {
-    try {
-        auto file = m3::Activity::own().files()->get(fd);
-        file->sync();
-        return 0;
-    }
-    catch(const m3::Exception &e) {
-        return -__m3_posix_errno(e.code());
-    }
+    return -__m3_posix_errno(__m3c_sync(fd));
 }

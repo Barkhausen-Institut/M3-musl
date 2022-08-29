@@ -13,30 +13,17 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-#if !defined(__host__)
-#    include <base/Env.h>
-#    include <base/TCU.h>
-#    include <base/util/Math.h>
-#endif
+#include <m3/Compat.h>
 
 #include <debug.h>
 
-#if defined(__host__)
-#    include <bits/syscall.h>
-
-#    include "../arch/x86_64/syscall_arch.h"
-#else
 EXTERN_C void gem5_writefile(const char *str, uint64_t len, uint64_t offset, uint64_t file);
-#endif
 
 void debug_new(DebugBuf *db) {
     db->pos = 0;
-#if !defined(__host__)
     debug_puts(db, "[musl       @");
     debug_putu(db, m3::env()->tile_id, 16);
     debug_puts(db, "] ");
-#endif
 }
 
 void debug_puts(DebugBuf *db, const char *str) {
@@ -45,17 +32,17 @@ void debug_puts(DebugBuf *db, const char *str) {
         db->buf[db->pos++] = c;
 }
 
-static size_t debug_putu_rec(DebugBuf *db, ullong n, uint base) {
+size_t debug_putu_rec(char *buf, ullong n, uint base) {
     static char hexchars_small[] = "0123456789abcdef";
     size_t res = 0;
     if(n >= base)
-        res += debug_putu_rec(db, n / base, base);
-    db->buf[db->pos + res] = hexchars_small[n % base];
+        res += debug_putu_rec(buf, n / base, base);
+    buf[res] = hexchars_small[n % base];
     return res + 1;
 }
 
 void debug_putu(DebugBuf *db, ullong n, uint base) {
-    db->pos += debug_putu_rec(db, n, base);
+    db->pos += debug_putu_rec(db->buf + db->pos, n, base);
 }
 
 void print_tcu(const char *str, size_t len) {
@@ -83,15 +70,11 @@ void print_tcu(const char *str, size_t len) {
 }
 
 void debug_flush(DebugBuf *db) {
-#if defined(__host__)
-    __syscall3(SYS_write, 1, (long)db->buf, (long)db->pos);
-#else
     if(m3::env()->platform == m3::Platform::GEM5) {
         static const char *fileAddr = "stdout";
         gem5_writefile(db->buf, db->pos, 0, reinterpret_cast<uint64_t>(fileAddr));
     }
     else
         print_tcu(db->buf, db->pos);
-#endif
     db->pos = 0;
 }

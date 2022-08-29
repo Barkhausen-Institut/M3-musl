@@ -13,17 +13,14 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-
-#include <m3/tiles/OwnActivity.h>
+#include <m3/Compat.h>
 
 #include <unistd.h>
 
 #include "intern.h"
 
 EXTERN_C int __m3_getpid() {
-    // + 1, because our ids start with 0, but pid 0 is special
-    return m3::Activity::own().id() + 1;
+    return __m3c_getpid();
 }
 
 // pretend that we're running as root

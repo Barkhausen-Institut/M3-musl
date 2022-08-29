@@ -13,16 +13,15 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-#include <base/Env.h>
+#include <m3/Compat.h>
 
 #include <features.h>
 #include <stdlib.h>
 
 weak void abort() {
-    m3::env()->exit(1, true);
+    __m3c_exit(1, true);
 }
 
 _Noreturn void _Exit(int ec) {
-    m3::env()->exit(ec, false);
+    __m3c_exit(ec, false);
 }

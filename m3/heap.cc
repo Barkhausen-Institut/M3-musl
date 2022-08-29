@@ -1,6 +1,4 @@
-#include <base/Common.h>
-#include <base/Env.h>
-#include <base/util/Math.h>
+#include <m3/Compat.h>
 
 #include <assert.h>
 #include <errno.h>

@@ -17,6 +17,8 @@
 #include <base/log/Lib.h>
 #include <base/time/Instant.h>
 
+#include "m3/Compat.h"
+
 extern "C" {
 #include <bits/syscall.h>
 #include <errno.h>
@@ -25,27 +27,22 @@ extern "C" {
 #include <sys/socket.h>
 }
 
+#include "debug.h"
 #include "intern.h"
 
 #define PRINT_SYSCALLS 0
 #define PRINT_UNKNOWN  0
 
 struct SyscallTraceEntry {
-    explicit SyscallTraceEntry()
-        : number(),
-          start(m3::TimeInstant::now()),
-          end(m3::TimeInstant::now()) {
-    }
-
     long number;
-    m3::TimeInstant start;
-    m3::TimeInstant end;
+    uint64_t start;
+    uint64_t end;
 };
 
 static SyscallTraceEntry *syscall_trace;
 static size_t syscall_trace_pos;
 static size_t syscall_trace_size;
-static m3::TimeDuration system_time;
+static uint64_t system_time;
 
 static const char *syscall_name(long no) {
     switch(no) {
@@ -173,8 +170,10 @@ static const char *syscall_name(long no) {
 
         default: {
             static char tmp[32];
-            m3::OStringStream os(tmp, sizeof(tmp));
-            os << "unknown[" << no << "]";
+            strcpy(tmp, "Unknown[");
+            size_t len = debug_putu_rec(tmp + 8, static_cast<unsigned long long>(no), 10);
+            tmp[8 + len] = ']';
+            tmp[8 + len + 1] = '\0';
             return tmp;
         }
     }
@@ -197,6 +196,7 @@ EXTERN_C int __m3_posix_errno(int m3_error) {
         case m3::Errors::NO_PERM: return EPERM;
         case m3::Errors::BAD_FD: return EBADF;
         case m3::Errors::SEEK_PIPE: return ESPIPE;
+        case m3::Errors::WOULD_BLOCK: return EWOULDBLOCK;
         default: return ENOSYS;
     }
 }
@@ -204,53 +204,45 @@ EXTERN_C int __m3_posix_errno(int m3_error) {
 EXTERN_C void __m3_sysc_trace(bool enable, size_t max) {
     if(enable) {
         if(!syscall_trace)
-            syscall_trace = new SyscallTraceEntry[max]();
+            syscall_trace =
+                static_cast<SyscallTraceEntry *>(calloc(max, sizeof(SyscallTraceEntry)));
         syscall_trace_pos = 0;
         syscall_trace_size = max;
-        system_time = m3::TimeDuration::ZERO;
+        system_time = 0;
     }
     else {
-        char buf[128];
         for(size_t i = 0; i < syscall_trace_pos; ++i) {
-            m3::OStringStream os(buf, sizeof(buf));
-            os << "[" << m3::fmt(i, 3) << "] " << syscall_name(syscall_trace[i].number) << " ("
-               << syscall_trace[i].number << ")"
-               << " " << m3::fmt(syscall_trace[i].start.as_nanos(), "0", 11) << " "
-               << m3::fmt(syscall_trace[i].end.as_nanos(), "0", 11) << "\n";
-            m3::Machine::write(os.str(), os.length());
+            __m3c_print_syscall_trace(i, syscall_name(syscall_trace[i].number),
+                                      syscall_trace[i].number, syscall_trace[i].start,
+                                      syscall_trace[i].end);
         }
 
-        delete[] syscall_trace;
+        free(syscall_trace);
         syscall_trace = nullptr;
         syscall_trace_pos = 0;
         syscall_trace_size = 0;
-        system_time = m3::TimeDuration::ZERO;
+        system_time = 0;
     }
 }
 
 EXTERN_C uint64_t __m3_sysc_systime() {
-    return system_time.as_nanos();
+    return system_time;
 }
 
 EXTERN_C void __m3_sysc_trace_start(long n) {
     if(syscall_trace_pos < syscall_trace_size) {
         syscall_trace[syscall_trace_pos].number = n;
-        syscall_trace[syscall_trace_pos].start = m3::TimeInstant::now();
+        syscall_trace[syscall_trace_pos].start = __m3c_get_nanos();
     }
 }
 
 EXTERN_C void __m3_sysc_trace_stop() {
     if(syscall_trace_pos < syscall_trace_size) {
-        syscall_trace[syscall_trace_pos].end = m3::TimeInstant::now();
+        syscall_trace[syscall_trace_pos].end = __m3c_get_nanos();
         syscall_trace_pos++;
-        system_time += syscall_trace[syscall_trace_pos].end.duration_since(
-            syscall_trace[syscall_trace_pos].start);
+        system_time +=
+            syscall_trace[syscall_trace_pos].end - syscall_trace[syscall_trace_pos].start;
     }
-}
-
-void print_syscall(m3::OStringStream &os, long n, long a, long b, long c, long d, long e, long f) {
-    os << syscall_name(n) << "(" << a << ", " << b << ", " << c << ", " << d << ", " << e << ", "
-       << f << ")";
 }
 
 EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f) {
@@ -259,11 +251,7 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
     __m3_sysc_trace_start(n);
 
 #if PRINT_SYSCALLS
-    char syscbuf[256];
-    m3::OStringStream syscos(syscbuf, sizeof(syscbuf));
-    print_syscall(syscos, n, a, b, c, d, e, f);
-    syscos << " ...\n";
-    m3::Machine::write(syscos.str(), syscos.length());
+    __m3c_print_syscall_start(syscall_name(n), a, b, c, d, e, f);
 #endif
 
     switch(n) {
@@ -427,23 +415,15 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #endif
             break;
 
-        default: {
+        default:
 #if !PRINT_SYSCALLS && PRINT_UNKNOWN
-            char buf[256];
-            m3::OStringStream os(buf, sizeof(buf));
-            print_syscall(os, n, a, b, c, d, e, f);
-            os << " -> " << res << "\n";
-            m3::Machine::write(os.str(), os.length());
+            __m3c_print_syscall_end(syscall_name(n), res, a, b, c, d, e, f);
 #endif
             break;
-        }
     }
 
 #if PRINT_SYSCALLS
-    syscos.reset();
-    print_syscall(syscos, n, a, b, c, d, e, f);
-    syscos << " -> " << res << "\n";
-    m3::Machine::write(syscos.str(), syscos.length());
+    __m3c_print_syscall_end(syscall_name(n), res, a, b, c, d, e, f);
 #endif
 
     __m3_sysc_trace_stop();
