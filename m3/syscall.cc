@@ -58,7 +58,13 @@ static const char *syscall_name(long no) {
 #endif
         case SYS_lseek: return "lseek";
         case SYS_ftruncate: return "ftruncate";
+#if defined(SYS_ftruncate64)
+        case SYS_ftruncate64: return "ftruncate";
+#endif
         case SYS_truncate: return "truncate";
+#if defined(SYS_truncate64)
+        case SYS_truncate64: return "truncate";
+#endif
         case SYS_close: return "close";
 #if defined(SYS_fcntl64)
         case SYS_fcntl64:
@@ -311,8 +317,14 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #if defined(SYS_newfstatat)
         case SYS_newfstatat: res = __m3_fstatat(a, (const char *)b, (struct kstat *)c, d); break;
 #endif
-        case SYS_ftruncate: res = __m3_ftruncate(a, b); break;
-        case SYS_truncate: res = __m3_truncate((const char *)a, b); break;
+        case SYS_ftruncate: res = __m3_ftruncate(a, (off_t)b); break;
+#if defined(SYS_ftruncate64)
+        case SYS_ftruncate64: res = __m3_ftruncate(a, (off_t)b); break;
+#endif
+        case SYS_truncate: res = __m3_truncate((const char *)a, (off_t)b); break;
+#if defined(SYS_truncate64)
+        case SYS_truncate64: res = __m3_truncate((const char *)a, (off_t)b); break;
+#endif
         case SYS_getdents64: res = __m3_getdents64(a, (void *)b, (size_t)c); break;
 #if defined(SYS_mkdir)
         case SYS_mkdir: res = __m3_mkdirat(-1, (const char *)a, (mode_t)b); break;

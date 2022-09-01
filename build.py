@@ -102,6 +102,8 @@ def build(gen, env):
         'm3/debug.cc', 'm3/exit.cc', 'm3/heap.cc', 'm3/init.c', 'm3/lock.c', 'm3/malloc.cc',
         'm3/pthread.c'
     ]
+    if env['ISA'] == 'arm':
+        simple_files += ['m3/arm.cc']
 
     # disallow FPU instructions, because we use the library for e.g. TileMux as well
     simple_env = env.clone()

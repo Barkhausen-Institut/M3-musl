@@ -116,18 +116,20 @@ EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence) {
     static_assert(SEEK_CUR == M3FS_SEEK_CUR, "SEEK_CUR mismatch");
     static_assert(SEEK_END == M3FS_SEEK_END, "SEEK_END mismatch");
 
-    m3::Errors::Code res = __m3c_lseek(fd, &offset, whence);
+    size_t soffset = static_cast<size_t>(offset);
+    m3::Errors::Code res = __m3c_lseek(fd, &soffset, whence);
+    offset = static_cast<off_t>(soffset);
     if(res != m3::Errors::NONE)
         return -__m3_posix_errno(res);
     return offset;
 }
 
 EXTERN_C int __m3_ftruncate(int fd, off_t length) {
-    return -__m3_posix_errno(__m3c_ftruncate(fd, length));
+    return -__m3_posix_errno(__m3c_ftruncate(fd, static_cast<size_t>(length)));
 }
 
 EXTERN_C int __m3_truncate(const char *pathname, off_t length) {
-    return -__m3_posix_errno(__m3c_truncate(pathname, length));
+    return -__m3_posix_errno(__m3c_truncate(pathname, static_cast<size_t>(length)));
 }
 
 EXTERN_C int __m3_close(int fd) {
