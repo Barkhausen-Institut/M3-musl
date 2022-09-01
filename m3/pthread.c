@@ -15,5 +15,12 @@
 
 #include "pthread_impl.h"
 
+volatile int __thread_list_lock;
+
 uintptr_t m3_pthread_addr;
 struct pthread m3_cur_pthread;
+
+void *__copy_tls(unsigned char *mem) {
+    (void)mem;
+    return NULL;
+}
