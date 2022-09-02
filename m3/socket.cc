@@ -64,7 +64,7 @@ static int ep_to_sockaddr(CompatEndpoint &ep, struct sockaddr *addr, socklen_t *
     auto addr_in = reinterpret_cast<struct sockaddr_in *>(addr);
     memset(addr_in, 0, sizeof(sockaddr_in));
     addr_in->sin_family = AF_INET;
-    addr_in->sin_port = ep.port;
+    addr_in->sin_port = htons(ep.port);
     addr_in->sin_addr.s_addr = htonl(ep.addr);
     *addrlen = sizeof(struct sockaddr_in);
     return 0;
