@@ -69,6 +69,7 @@ static const char *syscall_name(long no) {
 #endif
         case SYS_faccessat: return "faccessat";
         case SYS_fsync: return "fsync";
+        case SYS_fdatasync: return "fdatasync";
 #if defined(SYS_fstat64)
         case SYS_fstat64:
 #endif
@@ -283,7 +284,9 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_access: res = __m3_faccessat(-1, (const char *)a, b, 0); break;
 #endif
         case SYS_faccessat: res = __m3_faccessat(a, (const char *)b, c, d); break;
+        // our fsync flushes everything, so we don't distinguish between fsync and fdatasync
         case SYS_fsync: res = __m3_fsync(a); break;
+        case SYS_fdatasync: res = __m3_fsync(a); break;
 
         case SYS_fstat: res = __m3_fstat(a, (struct kstat *)b); break;
 #if defined(SYS_fstat64)
