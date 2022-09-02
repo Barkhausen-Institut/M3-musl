@@ -191,7 +191,8 @@ EXTERN_C int __m3_connect(int fd, const struct sockaddr *addr, socklen_t addrlen
 
 EXTERN_C ssize_t __m3_sendto(int fd, const void *buf, size_t len, int flags,
                              const struct sockaddr *dest_addr, socklen_t addrlen) {
-    if(flags != 0)
+    // we don't have signals anyway, so we can allow this flag
+    if((flags & ~MSG_NOSIGNAL) != 0)
         return -ENOTSUP;
     if(dest_addr == nullptr)
         return __m3_write(fd, buf, len);
@@ -221,7 +222,8 @@ EXTERN_C ssize_t __m3_sendmsg(int fd, const struct msghdr *msg, int flags) {
 
 EXTERN_C ssize_t __m3_recvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *src_addr,
                                socklen_t *addrlen) {
-    if(flags != 0)
+    // we don't have signals anyway, so we can allow this flag
+    if((flags & ~MSG_NOSIGNAL) != 0)
         return -ENOTSUP;
     if(src_addr == nullptr)
         return __m3_read(fd, buf, len);
