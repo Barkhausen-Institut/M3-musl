@@ -184,7 +184,8 @@ EXTERN_C int __m3_accept(int fd, struct sockaddr *addr, socklen_t *addrlen) {
 }
 
 EXTERN_C int __m3_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int flags) {
-    if(flags != 0)
+    // close on exec can be ignored
+    if((flags & ~SOCK_CLOEXEC) != 0)
         return -ENOTSUP;
     return __m3_accept(fd, addr, addrlen);
 }
