@@ -92,6 +92,17 @@ EXTERN_C int __m3_socket(int domain, int type, int) {
     return fd;
 }
 
+EXTERN_C int __m3_setsockopt(int fd, int level, int optname, const void *, socklen_t) {
+    if(!check_socket(fd))
+        return -EBADF;
+    if(level != SOL_SOCKET)
+        return -ENOTSUP;
+    // we don't delay reusing of addresses or ports, so we don't care about the option
+    if(optname != SO_REUSEADDR && optname != SO_REUSEPORT)
+        return -ENOTSUP;
+    return 0;
+}
+
 EXTERN_C int __m3_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen) {
     if(!check_socket(fd))
         return -EBADF;

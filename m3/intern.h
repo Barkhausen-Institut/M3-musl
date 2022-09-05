@@ -64,6 +64,7 @@ EXTERN_C ssize_t __m3_getcwd(char *buf, size_t size);
 
 // socket syscalls
 EXTERN_C int __m3_socket(int domain, int type, int protocol);
+EXTERN_C int __m3_setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen);
 EXTERN_C int __m3_getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 EXTERN_C int __m3_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 EXTERN_C int __m3_bind(int fd, const struct sockaddr *addr, socklen_t addrlen);

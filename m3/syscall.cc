@@ -117,6 +117,7 @@ static const char *syscall_name(long no) {
         case SYS_getcwd: return "getcwd";
 
         case SYS_socket: return "socket";
+        case SYS_setsockopt: return "setsockopt";
         case SYS_connect: return "connect";
         case SYS_bind: return "bind";
         case SYS_listen: return "listen";
@@ -351,6 +352,7 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_readlinkat: res = -EINVAL; break;
 
         case SYS_socket: res = __m3_socket(a, b, c); break;
+        case SYS_setsockopt: res = __m3_setsockopt(a, b, c, (const void *)d, (socklen_t)e); break;
         case SYS_bind: res = __m3_bind(a, (const struct sockaddr *)b, (socklen_t)c); break;
         case SYS_listen: res = __m3_listen(a, b); break;
         case SYS_accept: res = __m3_accept(a, (struct sockaddr *)b, (socklen_t *)c); break;
