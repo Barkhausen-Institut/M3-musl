@@ -2,9 +2,6 @@ import src.tools.ninjagen as ninjagen
 import os
 
 def build(gen, env):
-    if env['PLATF'] != 'kachel':
-        return
-
     env = env.clone()
 
     isa = 'riscv64' if env['ISA'] == 'riscv' else env['ISA']

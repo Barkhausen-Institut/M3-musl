@@ -52,9 +52,7 @@ void __m3_set_args(char **argv, char **envp) {
 }
 
 weak void __init_libc(char **envp, char *pn) {
-#if !defined(__host__)
     __environ = envp;
-#endif
     libc.auxv = (void *)(envp + 1);
     __init_tp(&m3_cur_pthread);
     m3_pthread_addr = (uintptr_t)&m3_cur_pthread;
