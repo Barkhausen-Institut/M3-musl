@@ -33,7 +33,7 @@ EXTERN_C void *__m3_heap_mmap(void *start, size_t len, int, int, int, off_t) {
     if(start != nullptr)
         return MAP_FAILED;
 
-    len = (len + 4096UL - 1) & ~(4096UL - 1);
+    len = (len + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
 
     if(heap_cur == 0) {
         heap_begin =
