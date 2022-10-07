@@ -172,6 +172,7 @@ static const char *syscall_name(long no) {
         case SYS_nanosleep: return "nanosleep";
 
         case SYS_uname: return "uname";
+        case SYS_ioctl: return "ioctl";
 
         case 0xFFFF: return "receive";
         case 0xFFFE: return "send";
