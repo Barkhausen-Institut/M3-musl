@@ -207,6 +207,7 @@ EXTERN_C int __m3_posix_errno(int m3_error) {
         case m3::Errors::BAD_FD: return EBADF;
         case m3::Errors::SEEK_PIPE: return ESPIPE;
         case m3::Errors::WOULD_BLOCK: return EWOULDBLOCK;
+        case m3::Errors::OUT_OF_BOUNDS: return EOVERFLOW;
         default: return ENOSYS;
     }
 }
