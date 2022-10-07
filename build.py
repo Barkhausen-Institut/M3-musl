@@ -112,7 +112,7 @@ def build(gen, env):
     simple_objs = simple_env.objs(gen, simple_files)
 
     # simple C library without dependencies (but also no stdio, etc.)
-    lib = env.static_lib(gen, out = 'libsimplec', ins = simple_objs)
+    lib = env.static_lib(gen, out = 'libsimplec', ins = simple_objs + ['m3/simple.cc'])
     env.install(gen, env['LIBDIR'], lib)
 
     # full C library

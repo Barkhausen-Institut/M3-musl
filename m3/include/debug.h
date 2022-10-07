@@ -27,8 +27,9 @@ __attribute__((aligned(8))) typedef struct DebugBuf {
 } DebugBuf;
 
 void debug_new(DebugBuf *db);
+void debug_putc(DebugBuf *db, char c);
 void debug_puts(DebugBuf *db, const char *str);
-size_t debug_putu_rec(char *buf, unsigned long long n, unsigned int base);
+size_t debug_putu_rec(char *buf, size_t space, unsigned long long n, unsigned int base);
 void debug_putu(DebugBuf *db, unsigned long long n, unsigned int base);
 void debug_flush(DebugBuf *db);
 

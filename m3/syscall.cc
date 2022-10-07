@@ -179,7 +179,8 @@ static const char *syscall_name(long no) {
         default: {
             static char tmp[32];
             strcpy(tmp, "Unknown[");
-            size_t len = debug_putu_rec(tmp + 8, static_cast<unsigned long long>(no), 10);
+            size_t len =
+                debug_putu_rec(tmp + 8, sizeof(tmp) - 8, static_cast<unsigned long long>(no), 10);
             tmp[8 + len] = ']';
             tmp[8 + len + 1] = '\0';
             return tmp;

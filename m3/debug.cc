@@ -26,23 +26,29 @@ void debug_new(DebugBuf *db) {
     debug_puts(db, "] ");
 }
 
-void debug_puts(DebugBuf *db, const char *str) {
-    char c;
-    while((c = *str++))
+void debug_putc(DebugBuf *db, char c) {
+    if(db->pos < sizeof(db->buf))
         db->buf[db->pos++] = c;
 }
 
-size_t debug_putu_rec(char *buf, ullong n, uint base) {
+void debug_puts(DebugBuf *db, const char *str) {
+    char c;
+    while((c = *str++))
+        debug_putc(db, c);
+}
+
+size_t debug_putu_rec(char *buf, size_t space, ullong n, uint base) {
     static char hexchars_small[] = "0123456789abcdef";
     size_t res = 0;
     if(n >= base)
-        res += debug_putu_rec(buf, n / base, base);
-    buf[res] = hexchars_small[n % base];
+        res += debug_putu_rec(buf, space, n / base, base);
+    if(res < space)
+        buf[res] = hexchars_small[n % base];
     return res + 1;
 }
 
 void debug_putu(DebugBuf *db, ullong n, uint base) {
-    db->pos += debug_putu_rec(db->buf + db->pos, n, base);
+    db->pos += debug_putu_rec(db->buf + db->pos, sizeof(db->buf) - db->pos, n, base);
 }
 
 void print_tcu(const char *str, size_t len) {
@@ -74,7 +80,6 @@ void debug_flush(DebugBuf *db) {
         static const char *fileAddr = "stdout";
         gem5_writefile(db->buf, db->pos, 0, reinterpret_cast<uint64_t>(fileAddr));
     }
-    else
-        print_tcu(db->buf, db->pos);
+    print_tcu(db->buf, db->pos);
     db->pos = 0;
 }
