@@ -19,9 +19,9 @@
 #include <stdlib.h>
 
 weak void abort() {
-    __m3c_exit(1, true);
+    __m3c_exit(m3::Errors::UNSPECIFIED, true);
 }
 
 _Noreturn void _Exit(int ec) {
-    __m3c_exit(ec, false);
+    __m3c_exit(ec ? m3::Errors::UNSPECIFIED : m3::Errors::NONE, false);
 }
