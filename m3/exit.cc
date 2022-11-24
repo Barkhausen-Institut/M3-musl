@@ -23,5 +23,5 @@ weak void abort() {
 }
 
 _Noreturn void _Exit(int ec) {
-    __m3c_exit(ec ? m3::Errors::UNSPECIFIED : m3::Errors::NONE, false);
+    __m3c_exit(ec ? m3::Errors::UNSPECIFIED : m3::Errors::SUCCESS, false);
 }

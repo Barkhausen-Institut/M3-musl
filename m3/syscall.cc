@@ -191,7 +191,7 @@ static const char *syscall_name(long no) {
 
 EXTERN_C int __m3_posix_errno(int m3_error) {
     switch(m3_error) {
-        case m3::Errors::NONE: return 0;
+        case m3::Errors::SUCCESS: return 0;
         case m3::Errors::INV_ARGS: return EINVAL;
         case m3::Errors::OUT_OF_MEM: return ENOMEM;
         case m3::Errors::NO_SUCH_FILE: return ENOENT;

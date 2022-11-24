@@ -83,7 +83,7 @@ EXTERN_C int __m3_socket(int domain, int type, int) {
 
     int fd;
     m3::Errors::Code res = __m3c_socket(stype, &fd);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
 
     assert(sockets[fd].type == INVALID);
@@ -108,7 +108,7 @@ EXTERN_C int __m3_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen)
         return -EBADF;
     CompatEndpoint ep;
     m3::Errors::Code res = __m3c_get_local_ep(fd, sockets[fd].type, &ep);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     return ep_to_sockaddr(ep, addr, addrlen);
 }
@@ -118,7 +118,7 @@ EXTERN_C int __m3_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen)
         return -EBADF;
     CompatEndpoint ep;
     m3::Errors::Code res = __m3c_get_remote_ep(fd, sockets[fd].type, &ep);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     return ep_to_sockaddr(ep, addr, addrlen);
 }
@@ -165,7 +165,7 @@ EXTERN_C int __m3_accept(int fd, struct sockaddr *addr, socklen_t *addrlen) {
     int cfd;
     CompatEndpoint ep;
     m3::Errors::Code res = __m3c_accept_stream(sockets[fd].listen_port, &cfd, &ep);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return res;
 
     assert(sockets[cfd].type == INVALID);
@@ -219,7 +219,7 @@ EXTERN_C ssize_t __m3_sendto(int fd, const void *buf, size_t len, int flags,
     }
 
     m3::Errors::Code res = __m3c_sendto(fd, sockets[fd].type, buf, &len, &ep);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     return static_cast<ssize_t>(len);
 }
@@ -244,7 +244,7 @@ EXTERN_C ssize_t __m3_recvfrom(int fd, void *buf, size_t len, int flags, struct 
 
     CompatEndpoint ep;
     m3::Errors::Code res = __m3c_recvfrom(fd, sockets[fd].type, buf, &len, &ep);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     if(src_addr) {
         int conv_res = ep_to_sockaddr(ep, src_addr, addrlen);

@@ -51,7 +51,7 @@ EXTERN_C int __m3_epoll_create(int) {
                 descs[i]->data[j].fd = -1;
 
             m3::Errors::Code res = __m3c_waiter_create(&descs[i]->waiter);
-            if(res != m3::Errors::NONE) {
+            if(res != m3::Errors::SUCCESS) {
                 free(descs[i]);
                 descs[i] = nullptr;
                 return -__m3_posix_errno(res);

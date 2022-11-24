@@ -42,7 +42,7 @@ EXTERN_C int __m3_openat(int, const char *pathname, int flags, mode_t) {
 
     int fd;
     m3::Errors::Code res = __m3c_open(pathname, m3_flags, &fd);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     return fd;
 }
@@ -50,7 +50,7 @@ EXTERN_C int __m3_openat(int, const char *pathname, int flags, mode_t) {
 EXTERN_C ssize_t __m3_read(int fd, void *buf, size_t count) {
     size_t read = count;
     m3::Errors::Code res = __m3c_read(fd, buf, &read);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     return static_cast<ssize_t>(read);
 }
@@ -80,7 +80,7 @@ EXTERN_C ssize_t __m3_readv(int fildes, const struct iovec *iov, int iovcnt) {
 EXTERN_C ssize_t __m3_write(int fd, const void *buf, size_t count) {
     size_t written = count;
     m3::Errors::Code res = __m3c_write(fd, buf, &written);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     return static_cast<ssize_t>(written);
 }
@@ -119,7 +119,7 @@ EXTERN_C off_t __m3_lseek(int fd, off_t offset, int whence) {
     size_t soffset = static_cast<size_t>(offset);
     m3::Errors::Code res = __m3c_lseek(fd, &soffset, whence);
     offset = static_cast<off_t>(soffset);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     return offset;
 }
@@ -152,7 +152,7 @@ EXTERN_C int __m3_fcntl(int, int cmd, ... /* arg */) {
 EXTERN_C int __m3_faccessat(int, const char *pathname, int mode, int) {
     m3::FileInfo info;
     m3::Errors::Code res = __m3c_stat(pathname, &info);
-    if(res == m3::Errors::NONE) {
+    if(res == m3::Errors::SUCCESS) {
         if(mode == R_OK || mode == F_OK)
             return (info.mode & M3FS_MODE_READ) != 0 ? 0 : EPERM;
         if(mode == W_OK)

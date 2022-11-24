@@ -57,7 +57,7 @@ static void translate_stat(m3::FileInfo &info, struct kstat *statbuf) {
 EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf) {
     m3::FileInfo info;
     m3::Errors::Code res = __m3c_fstat(fd, &info);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     translate_stat(info, statbuf);
     return 0;
@@ -66,7 +66,7 @@ EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf) {
 EXTERN_C int __m3_fstatat(int, const char *pathname, struct kstat *statbuf, int) {
     m3::FileInfo info;
     m3::Errors::Code res = __m3c_stat(pathname, &info);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     translate_stat(info, statbuf);
     return 0;
@@ -79,7 +79,7 @@ EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
     bool read_first = true;
     if(open_dirs[fd].dir == nullptr) {
         m3::Errors::Code res = __m3c_opendir(fd, &open_dirs[fd].dir);
-        if(res != m3::Errors::NONE)
+        if(res != m3::Errors::SUCCESS)
             return -__m3_posix_errno(res);
         open_dirs[fd].entry = static_cast<m3::Dir::Entry *>(malloc(sizeof(m3::Dir::Entry)));
     }
@@ -101,7 +101,7 @@ EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
                 open_dirs[fd].entry = nullptr;
                 break;
             }
-            else if(res != m3::Errors::NONE)
+            else if(res != m3::Errors::SUCCESS)
                 return -__m3_posix_errno(res);
         }
 
@@ -163,7 +163,7 @@ EXTERN_C int __m3_fchdir(int fd) {
 EXTERN_C ssize_t __m3_getcwd(char *buf, size_t size) {
     size_t len = size;
     m3::Errors::Code res = __m3c_getcwd(buf, &len);
-    if(res != m3::Errors::NONE)
+    if(res != m3::Errors::SUCCESS)
         return -__m3_posix_errno(res);
     return static_cast<ssize_t>(len);
 }
