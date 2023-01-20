@@ -15,6 +15,11 @@ EXTERN_C int __m3_heap_brk(uintptr_t) {
     return -ENOSYS;
 }
 
+EXTERN_C void __m3_heap_get_area(uintptr_t *begin, uintptr_t *end) {
+    *begin = heap_begin;
+    *end = heap_end;
+}
+
 EXTERN_C void __m3_heap_set_area(uintptr_t begin, uintptr_t end) {
     heap_begin = heap_cur = begin;
     heap_end = end;
