@@ -51,28 +51,33 @@ void debug_putu(DebugBuf *db, ullong n, uint base) {
     db->pos += debug_putu_rec(db->buf + db->pos, sizeof(db->buf) - db->pos, n, base);
 }
 
-void print_tcu(const char *str, size_t len) {
-    constexpr size_t PRINT_REGS = 32;
-    constexpr size_t EXT_UNPRIV_REGS = 2 + 5;
-    constexpr size_t EP_COUNT = 128;
-    constexpr size_t PRINT_REG = 6;
-    typedef uint64_t reg_t;
+// put in kernel::TCU to get access to the private members of the TCU class
+namespace kernel {
+class TCU {
+public:
+    static void print_tcu(const char *str, size_t len) {
+        typedef uint64_t reg_t;
 
-    len = m3::Math::min(len, PRINT_REGS * sizeof(reg_t) - 1);
+        len = m3::Math::min(len, m3::TCU::PRINT_REGS * sizeof(reg_t) - 1);
 
-    uintptr_t buffer = m3::TCU::MMIO_ADDR + (EXT_UNPRIV_REGS + EP_COUNT * 3) * sizeof(reg_t);
-    const reg_t *rstr = reinterpret_cast<const reg_t *>(str);
-    const reg_t *end = reinterpret_cast<const reg_t *>(str + len);
-    while(rstr < end) {
-        m3::CPU::write8b(buffer, *rstr);
-        buffer += sizeof(reg_t);
-        rstr++;
+        uintptr_t buffer =
+            m3::TCU::MMIO_ADDR +
+            (m3::TCU::EXT_REGS + m3::TCU::UNPRIV_REGS + TOTAL_EPS * 3) * sizeof(reg_t);
+        const reg_t *rstr = reinterpret_cast<const reg_t *>(str);
+        const reg_t *end = reinterpret_cast<const reg_t *>(str + len);
+        while(rstr < end) {
+            m3::CPU::write8b(buffer, *rstr);
+            buffer += sizeof(reg_t);
+            rstr++;
+        }
+
+        auto PRINT_REG = static_cast<size_t>(m3::TCU::UnprivRegs::PRINT);
+        m3::CPU::write8b(m3::TCU::MMIO_ADDR + PRINT_REG * sizeof(reg_t), len);
+        // wait until the print was carried out
+        while(m3::CPU::read8b(m3::TCU::MMIO_ADDR + PRINT_REG * sizeof(reg_t)) != 0)
+            ;
     }
-
-    m3::CPU::write8b(m3::TCU::MMIO_ADDR + PRINT_REG * sizeof(reg_t), len);
-    // wait until the print was carried out
-    while(m3::CPU::read8b(m3::TCU::MMIO_ADDR + PRINT_REG * sizeof(reg_t)) != 0)
-        ;
+};
 }
 
 void debug_flush(DebugBuf *db) {
@@ -80,6 +85,6 @@ void debug_flush(DebugBuf *db) {
         static const char *fileAddr = "stdout";
         gem5_writefile(db->buf, db->pos, 0, reinterpret_cast<uint64_t>(fileAddr));
     }
-    print_tcu(db->buf, db->pos);
+    kernel::TCU::print_tcu(db->buf, db->pos);
     db->pos = 0;
 }
