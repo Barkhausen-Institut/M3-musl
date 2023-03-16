@@ -13,10 +13,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-#include <base/log/Lib.h>
-#include <base/time/Instant.h>
-
 #include "m3/Compat.h"
 
 extern "C" {

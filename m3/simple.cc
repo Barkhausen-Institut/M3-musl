@@ -49,3 +49,28 @@ EXTERN_C size_t fwrite(const void *str, UNUSED size_t size, size_t nmemb, FILE *
 EXTERN_C ssize_t write(int, const void *data, size_t count) {
     return static_cast<ssize_t>(fwrite(data, 1, count, NULL));
 }
+
+#if defined(__arm__)
+extern "C" int raise(int) {
+    return -1;
+}
+#endif
+
+EXTERN_C int sprintf(char *, const char *, ...) {
+    return -1;
+}
+
+EXTERN_C void *__tls_get_addr(void *) {
+    return 0;
+}
+
+EXTERN_C int pthread_mutex_lock(void *) {
+    return -1;
+}
+EXTERN_C int pthread_mutex_unlock(void *) {
+    return -1;
+}
+EXTERN_C int pthread_once(void *, void (*)(void)) {
+    return -1;
+}
+

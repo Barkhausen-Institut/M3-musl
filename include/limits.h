@@ -93,7 +93,7 @@
 
 #if defined(_GNU_SOURCE) || defined(_BSD_SOURCE) || defined(_XOPEN_SOURCE)
 
-#ifdef PAGESIZE
+#if defined(PAGESIZE) && !defined(PAGE_SIZE)
 #define PAGE_SIZE PAGESIZE
 #endif
 #define NZERO 20

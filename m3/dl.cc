@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Nils Asmussen, Barkhausen Institut
+ * Copyright (C) 2023 Nils Asmussen, Barkhausen Institut
  *
  * This file is part of M3 (Microkernel-based SysteM for Heterogeneous Manycores).
  *
@@ -13,15 +13,8 @@
  * General Public License version 2 for more details.
  */
 
-#include "pthread_impl.h"
+#include <link.h>
 
-volatile int __thread_list_lock;
-
-uintptr_t m3_pthread_addr;
-struct pthread m3_cur_pthread;
-
-void *__copy_tls(unsigned char *mem) {
-    (void)mem;
-    return NULL;
+int dl_iterate_phdr(int (*)(struct dl_phdr_info *, size_t, void *), void *) {
+    return -1;
 }
-

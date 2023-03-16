@@ -1,3 +1,5 @@
+#undef _GLIBCXX_HAVE_LINUX_FUTEX
+
 #define _Addr        long
 #define _Int64       long
 #define _Reg         long

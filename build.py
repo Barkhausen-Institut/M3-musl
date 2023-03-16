@@ -81,6 +81,8 @@ def build(gen, env):
         'm3/dir.cc', 'm3/file.cc', 'm3/process.cc', 'm3/socket.cc', 'm3/syscall.cc',
         'm3/time.cc', 'm3/misc.cc', 'm3/epoll.cc'
     ]
+    if env['ISA'] == 'arm':
+        files += ['m3/arm.cc']
 
     # files we want to have for bare-metal components
     simple_files  = ['src/env/__environ.c']
@@ -97,19 +99,17 @@ def build(gen, env):
     simple_files += env.glob('src/malloc/mallocng/*.c')
     simple_files += [
         'm3/debug.cc', 'm3/exit.cc', 'm3/heap.cc', 'm3/init.c', 'm3/lock.c', 'm3/malloc.cc',
-        'm3/pthread.c'
+        'm3/pthread.c', 'm3/dl.cc',
     ]
-    if env['ISA'] == 'arm':
-        simple_files += ['m3/arm.cc']
 
     # disallow FPU instructions, because we use the library for e.g. TileMux as well
-    simple_env = env.clone()
-    if simple_env['ISA'] == 'x86_64':
-        simple_env['CFLAGS'] += ['-msoft-float', '-mno-sse']
-    elif simple_env['ISA'] == 'riscv':
-        simple_env['CFLAGS'] += ['-march=rv64imac']
+    sf_env = env.clone()
+    sf_env.soft_float()
+    lib = sf_env.static_lib(gen, out = 'libsimplecsf', ins = simple_files + ['m3/simple.cc'])
+    sf_env.install(gen, sf_env['LIBDIR'], lib)
 
-    simple_objs = simple_env.objs(gen, simple_files)
+    # simple objects with FPU instructions
+    simple_objs = env.objs(gen, simple_files)
 
     # simple C library without dependencies (but also no stdio, etc.)
     lib = env.static_lib(gen, out = 'libsimplec', ins = simple_objs + ['m3/simple.cc'])

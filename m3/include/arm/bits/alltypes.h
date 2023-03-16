@@ -1,3 +1,5 @@
+#undef _GLIBCXX_HAVE_LINUX_FUTEX
+
 #define _REDIR_TIME64 0
 #define _Addr         int
 #define _Int64        long long
