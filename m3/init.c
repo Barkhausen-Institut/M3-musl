@@ -21,7 +21,18 @@
 #include "libc.h"
 #include "pthread_impl.h"
 
+static struct builtin_tls {
+    void *space[16];
+} builtin_tls[1];
+
 extern struct pthread m3_cur_pthread;
+
+extern void *_tdata_start;
+extern void *_tdata_end;
+
+extern void __init_tls_arch(uintptr_t addr);
+
+static int tls_enabled = 0;
 
 int __init_tp(void *p) {
     pthread_t td = p;
@@ -31,10 +42,12 @@ int __init_tp(void *p) {
     td->locale = &libc.global_locale;
     td->robust_list.head = &td->robust_list.head;
     td->next = td->prev = td;
+    __init_tls(NULL);
     return 0;
 }
 
-void __m3_init_libc(int argc, char **argv, char **envp) {
+void __m3_init_libc(int argc, char **argv, char **envp, int tls) {
+    tls_enabled = tls;
     __progname_full = argv ? argv[0] : "";
     __progname = __progname_full;
     char *last_slash = strrchr(__progname, '/');
@@ -58,5 +71,19 @@ weak void __init_libc(char **envp, char *pn) {
     m3_pthread_addr = (uintptr_t)&m3_cur_pthread;
 }
 
-hidden void __init_tls(size_t *tls) {
+hidden void __init_tls(size_t *s) {
+    pthread_t td = &m3_cur_pthread;
+    td->dtv = (uintptr_t *)builtin_tls;
+    size_t tls_size = tls_enabled ? &_tdata_end - &_tdata_start : 0;
+    if(tls_size > 0) {
+        if(tls_size > sizeof(builtin_tls) - sizeof(uintptr_t) * 2)
+            abort();
+        uintptr_t tls_dest = (uintptr_t)(td->dtv + 2);
+        td->dtv[0] = 1;
+        td->dtv[1] = tls_dest + DTP_OFFSET;
+        memcpy((void *)tls_dest, &_tdata_start, tls_size);
+        __init_tls_arch((uintptr_t)td);
+    }
+    else
+        td->dtv[0] = 0;
 }

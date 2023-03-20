@@ -99,7 +99,7 @@ def build(gen, env):
     simple_files += env.glob('src/malloc/mallocng/*.c')
     simple_files += [
         'm3/debug.cc', 'm3/exit.cc', 'm3/heap.cc', 'm3/init.c', 'm3/lock.c', 'm3/malloc.cc',
-        'm3/pthread.c', 'm3/dl.cc',
+        'm3/pthread.c', 'm3/dl.cc', 'm3/tls.cc'
     ]
 
     # disallow FPU instructions, because we use the library for e.g. TileMux as well
