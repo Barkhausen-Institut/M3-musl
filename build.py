@@ -1,4 +1,3 @@
-import src.tools.ninjagen as ninjagen
 import os
 
 def build(gen, env):
@@ -61,8 +60,8 @@ def build(gen, env):
         'stat', 'stdio', 'stdlib', 'temp', 'termios', 'thread', 'time', 'unistd',
     ]
     for d in dirs:
-        files += env.glob('src/' + d + '/' + isa + '/*')
-        files += env.glob('src/' + d + '/*.c')
+        files += env.glob(gen, 'src/' + d + '/' + isa + '/*')
+        files += env.glob(gen, 'src/' + d + '/*.c')
 
     # directories where we can't use all files
     files += [
@@ -73,8 +72,8 @@ def build(gen, env):
         'src/exit/abort_lock.c', 'src/exit/assert.c',
         'src/exit/at_quick_exit.c', 'src/exit/quick_exit.c'
     ]
-    files += [f for f in env.glob('src/errno/*.c') if os.path.basename(f) != '__errno_location.c']
-    files += [f for f in env.glob('src/internal/*.c') if os.path.basename(f) != 'libc.c']
+    files += [f for f in env.glob(gen, 'src/errno/*.c') if os.path.basename(f) != '__errno_location.c']
+    files += [f for f in env.glob(gen, 'src/internal/*.c') if os.path.basename(f) != 'libc.c']
 
     # m3-specific files
     files += [
@@ -88,15 +87,15 @@ def build(gen, env):
     simple_files  = ['src/env/__environ.c']
     simple_files += ['src/errno/__errno_location.c']
     simple_files += ['src/exit/atexit.c', 'src/exit/exit.c']
-    simple_files += env.glob('src/exit/' + isa + '/*')
+    simple_files += env.glob(gen, 'src/exit/' + isa + '/*')
     simple_files += ['src/internal/libc.c']
-    simple_files += env.glob('src/string/*.c')
-    simple_files += env.glob('src/string/' + isa + '/*')
-    for f in env.glob('src/malloc/*.c'):
+    simple_files += env.glob(gen, 'src/string/*.c')
+    simple_files += env.glob(gen, 'src/string/' + isa + '/*')
+    for f in env.glob(gen, 'src/malloc/*.c'):
         filename = os.path.basename(f)
         if filename != 'lite_malloc.c' and filename != 'free.c' and filename != 'realloc.c':
             simple_files += [f]
-    simple_files += env.glob('src/malloc/mallocng/*.c')
+    simple_files += env.glob(gen, 'src/malloc/mallocng/*.c')
     simple_files += [
         'm3/debug.cc', 'm3/exit.cc', 'm3/heap.cc', 'm3/init.c', 'm3/lock.c', 'm3/malloc.cc',
         'm3/pthread.c', 'm3/dl.cc', 'm3/tls.cc'
@@ -105,16 +104,16 @@ def build(gen, env):
     # disallow FPU instructions, because we use the library for e.g. TileMux as well
     sf_env = env.clone()
     sf_env.soft_float()
-    lib = sf_env.static_lib(gen, out = 'libsimplecsf', ins = simple_files + ['m3/simple.cc'])
+    lib = sf_env.static_lib(gen, out = 'simplecsf', ins = simple_files + ['m3/simple.cc'])
     sf_env.install(gen, sf_env['LIBDIR'], lib)
 
     # simple objects with FPU instructions
     simple_objs = env.objs(gen, simple_files)
 
     # simple C library without dependencies (but also no stdio, etc.)
-    lib = env.static_lib(gen, out = 'libsimplec', ins = simple_objs + ['m3/simple.cc'])
+    lib = env.static_lib(gen, out = 'simplec', ins = simple_objs + ['m3/simple.cc'])
     env.install(gen, env['LIBDIR'], lib)
 
     # full C library
-    lib = env.static_lib(gen, out = 'libc', ins = files + simple_objs)
+    lib = env.static_lib(gen, out = 'c', ins = files + simple_objs)
     env.install(gen, env['LIBDIR'], lib)
