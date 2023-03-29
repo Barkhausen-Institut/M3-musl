@@ -73,4 +73,3 @@ EXTERN_C int pthread_mutex_unlock(void *) {
 EXTERN_C int pthread_once(void *, void (*)(void)) {
     return -1;
 }
-

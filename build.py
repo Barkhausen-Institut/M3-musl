@@ -1,5 +1,6 @@
 import os
 
+
 def build(gen, env):
     env = env.clone()
 
@@ -72,7 +73,8 @@ def build(gen, env):
         'src/exit/abort_lock.c', 'src/exit/assert.c',
         'src/exit/at_quick_exit.c', 'src/exit/quick_exit.c'
     ]
-    files += [f for f in env.glob(gen, 'src/errno/*.c') if os.path.basename(f) != '__errno_location.c']
+    files += [f for f in env.glob(gen, 'src/errno/*.c')
+              if os.path.basename(f) != '__errno_location.c']
     files += [f for f in env.glob(gen, 'src/internal/*.c') if os.path.basename(f) != 'libc.c']
 
     # m3-specific files
@@ -84,7 +86,7 @@ def build(gen, env):
         files += ['m3/arm.cc']
 
     # files we want to have for bare-metal components
-    simple_files  = ['src/env/__environ.c']
+    simple_files = ['src/env/__environ.c']
     simple_files += ['src/errno/__errno_location.c']
     simple_files += ['src/exit/atexit.c', 'src/exit/exit.c']
     simple_files += env.glob(gen, 'src/exit/' + isa + '/*')
@@ -104,16 +106,16 @@ def build(gen, env):
     # disallow FPU instructions, because we use the library for e.g. TileMux as well
     sf_env = env.clone()
     sf_env.soft_float()
-    lib = sf_env.static_lib(gen, out = 'simplecsf', ins = simple_files + ['m3/simple.cc'])
+    lib = sf_env.static_lib(gen, out='simplecsf', ins=simple_files + ['m3/simple.cc'])
     sf_env.install(gen, sf_env['LIBDIR'], lib)
 
     # simple objects with FPU instructions
     simple_objs = env.objs(gen, simple_files)
 
     # simple C library without dependencies (but also no stdio, etc.)
-    lib = env.static_lib(gen, out = 'simplec', ins = simple_objs + ['m3/simple.cc'])
+    lib = env.static_lib(gen, out='simplec', ins=simple_objs + ['m3/simple.cc'])
     env.install(gen, env['LIBDIR'], lib)
 
     # full C library
-    lib = env.static_lib(gen, out = 'c', ins = files + simple_objs)
+    lib = env.static_lib(gen, out='c', ins=files + simple_objs)
     env.install(gen, env['LIBDIR'], lib)
