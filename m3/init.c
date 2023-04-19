@@ -33,6 +33,7 @@ extern void *_tdata_end;
 extern void __init_tls_arch(uintptr_t addr);
 
 static int tls_enabled = 0;
+static char *null_ptr[] = {NULL};
 
 int __init_tp(void *p) {
     pthread_t td = p;
@@ -54,8 +55,7 @@ void __m3_init_libc(int argc, char **argv, char **envp, int tls) {
     if(last_slash)
         __progname = last_slash + 1;
 
-    static char *dummy_env[] = {NULL, NULL};
-    __init_libc(envp ? envp : dummy_env, NULL);
+    __init_libc(envp ? envp : null_ptr, NULL);
 }
 
 void __m3_set_args(char **argv, char **envp) {
@@ -66,7 +66,7 @@ void __m3_set_args(char **argv, char **envp) {
 
 weak void __init_libc(char **envp, char *pn) {
     __environ = envp;
-    libc.auxv = (void *)(envp + 1);
+    libc.auxv = (size_t *)null_ptr;
     __init_tp(&m3_cur_pthread);
     m3_pthread_addr = (uintptr_t)&m3_cur_pthread;
 }
