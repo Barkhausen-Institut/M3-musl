@@ -5,10 +5,15 @@
 #include <string.h>
 #include <sys/mman.h>
 
+struct FreeMem {
+    size_t size;
+    FreeMem *next;
+};
+
 extern void *_bss_end;
 static uintptr_t heap_begin;
-static uintptr_t heap_cur;
 static uintptr_t heap_end;
+static FreeMem *free_list;
 
 EXTERN_C int __m3_heap_brk(uintptr_t) {
     // if this fails, the allocator will fall back to mmap
@@ -21,8 +26,11 @@ EXTERN_C void __m3_heap_get_area(uintptr_t *begin, uintptr_t *end) {
 }
 
 EXTERN_C void __m3_heap_set_area(uintptr_t begin, uintptr_t end) {
-    heap_begin = heap_cur = begin;
+    heap_begin = begin;
     heap_end = end;
+    free_list = reinterpret_cast<FreeMem *>(heap_begin);
+    free_list->size = end - begin;
+    free_list->next = nullptr;
 }
 
 EXTERN_C uintptr_t __m3_heap_get_end() {
@@ -30,6 +38,18 @@ EXTERN_C uintptr_t __m3_heap_get_end() {
 }
 
 EXTERN_C void __m3_heap_append(size_t pages) {
+    FreeMem *cur = free_list;
+    bool found = false;
+    while(cur) {
+        if(reinterpret_cast<uintptr_t>(cur) + cur->size == reinterpret_cast<uintptr_t>(heap_end)) {
+            cur->size += pages * PAGE_SIZE;
+            found = true;
+            break;
+        }
+        cur = cur->next;
+    }
+    if(!found)
+        abort();
     heap_end += pages * PAGE_SIZE;
 }
 
@@ -40,25 +60,40 @@ EXTERN_C void *__m3_heap_mmap(void *start, size_t len, int, int, int, off_t) {
 
     len = (len + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
 
-    if(heap_cur == 0) {
-        heap_begin =
-            m3::Math::round_up<uintptr_t>(reinterpret_cast<uintptr_t>(&_bss_end), PAGE_SIZE);
+    if(heap_begin == 0) {
+        uintptr_t end, begin = m3::Math::round_up<uintptr_t>(reinterpret_cast<uintptr_t>(&_bss_end),
+                                                             PAGE_SIZE);
         if(m3::TileDesc(m3::env()->tile_desc).has_memory())
-            heap_end = m3::TileDesc(m3::env()->tile_desc).stack_space().first;
+            end = m3::TileDesc(m3::env()->tile_desc).stack_space().first;
         else
-            heap_end = heap_begin + m3::env()->heap_size;
-        heap_cur = heap_begin;
+            end = begin + m3::env()->heap_size;
+        __m3_heap_set_area(begin, end);
     }
 
-    if(heap_cur + len > heap_end)
+    void *res = nullptr;
+    FreeMem *cur = free_list;
+    while(cur) {
+        if(cur->size >= len) {
+            if(cur->size == len)
+                free_list = cur->next;
+            else {
+                free_list = reinterpret_cast<FreeMem *>(reinterpret_cast<uintptr_t>(cur) + len);
+                free_list->size = cur->size - len;
+                free_list->next = cur->next;
+            }
+            res = cur;
+            break;
+        }
+        cur = cur->next;
+    }
+
+    if(!res)
         return MAP_FAILED;
 
-    void *res = reinterpret_cast<void *>(heap_cur);
     // musl expects the memory to be initialized; we pass the UNINIT flag for the heap mapping to
     // the pager and memset it here to ensure that we always initialize it exactly once, even if the
     // memory does not come from the pager.
     memset(res, 0, len);
-    heap_cur += len;
     return res;
 }
 
@@ -74,6 +109,10 @@ EXTERN_C int __m3_heap_madvise(void *, size_t, int) {
     return 0;
 }
 
-EXTERN_C int __m3_heap_munmap(void *, size_t) {
+EXTERN_C int __m3_heap_munmap(void *ptr, size_t size) {
+    FreeMem *f = reinterpret_cast<FreeMem *>(ptr);
+    f->size = size;
+    f->next = free_list;
+    free_list = f;
     return 0;
 }
