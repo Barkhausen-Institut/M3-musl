@@ -6,14 +6,37 @@
 #include <stdint.h>
 #include <sys/sysmacros.h>
 #include "syscall.h"
-#include "kstat.h"
-#include "statx.h"
+
+struct statx {
+	uint32_t stx_mask;
+	uint32_t stx_blksize;
+	uint64_t stx_attributes;
+	uint32_t stx_nlink;
+	uint32_t stx_uid;
+	uint32_t stx_gid;
+	uint16_t stx_mode;
+	uint16_t pad1;
+	uint64_t stx_ino;
+	uint64_t stx_size;
+	uint64_t stx_blocks;
+	uint64_t stx_attributes_mask;
+	struct {
+		int64_t tv_sec;
+		uint32_t tv_nsec;
+		int32_t pad;
+	} stx_atime, stx_btime, stx_ctime, stx_mtime;
+	uint32_t stx_rdev_major;
+	uint32_t stx_rdev_minor;
+	uint32_t stx_dev_major;
+	uint32_t stx_dev_minor;
+	uint64_t spare[14];
+};
 
 static int fstatat_statx(int fd, const char *restrict path, struct stat *restrict st, int flag)
 {
 	struct statx stx;
 
-	int ret = __syscall(SYS_statx, fd, path, flag, STATX_BASIC_STATS, &stx);
+	int ret = __syscall(SYS_statx, fd, path, flag, 0x7ff, &stx);
 	if (ret) return ret;
 
 	*st = (struct stat){
@@ -46,6 +69,9 @@ static int fstatat_statx(int fd, const char *restrict path, struct stat *restric
 }
 
 #ifdef SYS_fstatat
+
+#include "kstat.h"
+
 static int fstatat_kstat(int fd, const char *restrict path, struct stat *restrict st, int flag)
 {
 	int ret;
@@ -109,7 +135,7 @@ static int fstatat_kstat(int fd, const char *restrict path, struct stat *restric
 }
 #endif
 
-int fstatat(int fd, const char *restrict path, struct stat *restrict st, int flag)
+int __fstatat(int fd, const char *restrict path, struct stat *restrict st, int flag)
 {
 	int ret;
 #ifdef SYS_fstatat
@@ -124,6 +150,4 @@ int fstatat(int fd, const char *restrict path, struct stat *restrict st, int fla
 	return __syscall_ret(ret);
 }
 
-#if !_REDIR_TIME64
-weak_alias(fstatat, fstatat64);
-#endif
+weak_alias(__fstatat, fstatat);

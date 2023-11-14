@@ -13,9 +13,15 @@
  * General Public License version 2 for more details.
  */
 
+#ifdef __cplusplus
+#    define restrict __restrict
+#endif
+
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+
+#undef restrict
 
 // for libstdc++
 extern "C" int __fstat_time64(int fd, struct stat *st) {

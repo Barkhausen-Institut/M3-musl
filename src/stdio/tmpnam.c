@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "syscall.h"
-#include "kstat.h"
-#include "statx.h"
 
 #define MAXTRIES 100
 
@@ -19,14 +17,10 @@ char *tmpnam(char *buf)
 	int r;
 	for (try=0; try<MAXTRIES; try++) {
 		__randname(s+12);
-#if defined(SYS_lstat)
-		r = __syscall(SYS_lstat, s, &(struct kstat){0});
-#elif defined(SYS_fstatat)
-		r = __syscall(SYS_fstatat, AT_FDCWD, s,
-			&(struct kstat){0}, AT_SYMLINK_NOFOLLOW);
+#ifdef SYS_readlink
+		r = __syscall(SYS_readlink, s, (char[1]){0}, 1);
 #else
-		r = __syscall(SYS_statx, AT_FDCWD, s, AT_SYMLINK_NOFOLLOW, 0,
-			&(struct statx){0});
+		r = __syscall(SYS_readlinkat, AT_FDCWD, s, (char[1]){0}, 1);
 #endif
 		if (r == -ENOENT) return strcpy(buf ? buf : internal, s);
 	}

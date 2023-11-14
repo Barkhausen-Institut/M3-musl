@@ -15,6 +15,10 @@
 
 #include <m3/Compat.h>
 
+#ifdef __cplusplus
+#    define restrict __restrict
+#endif
+
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -25,6 +29,8 @@
 // clang-format off
 #include <kstat.h> // needs to be last so that we have dev_t etc.
 // clang-format on
+
+#undef restrict
 
 #include "intern.h"
 
