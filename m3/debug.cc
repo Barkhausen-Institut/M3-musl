@@ -24,6 +24,7 @@ void debug_new(DebugBuf *db) {
     debug_puts(db, "[musl       @");
     debug_putu(db, m3::env()->tile_id, 16);
     debug_puts(db, "] ");
+    db->start = db->pos;
 }
 
 void debug_putc(DebugBuf *db, char c) {
@@ -86,5 +87,5 @@ void debug_flush(DebugBuf *db) {
         gem5_writefile(db->buf, db->pos, 0, reinterpret_cast<uint64_t>(fileAddr));
     }
     kernel::TCU::print_tcu(db->buf, db->pos);
-    db->pos = 0;
+    db->pos = db->start;
 }

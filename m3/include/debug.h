@@ -24,6 +24,7 @@ extern "C" {
 __attribute__((aligned(8))) typedef struct DebugBuf {
     char buf[128];
     size_t pos;
+    size_t start;
 } DebugBuf;
 
 void debug_new(DebugBuf *db);
