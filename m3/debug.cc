@@ -62,8 +62,7 @@ public:
         len = m3::Math::min(len, m3::TCU::PRINT_REGS * sizeof(reg_t) - 1);
 
         uintptr_t buffer =
-            m3::TCU::MMIO_ADDR +
-            (m3::TCU::EXT_REGS + m3::TCU::UNPRIV_REGS + TOTAL_EPS * 3) * sizeof(reg_t);
+            m3::TCU::MMIO_ADDR + (m3::TCU::EXT_REGS + m3::TCU::UNPRIV_REGS) * sizeof(reg_t);
         const reg_t *rstr = reinterpret_cast<const reg_t *>(str);
         const reg_t *end = reinterpret_cast<const reg_t *>(str + len);
         while(rstr < end) {
