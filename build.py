@@ -42,13 +42,14 @@ def build(gen, env):
         '-Wno-type-limits',
         '-Wno-cast-function-type',
         '-Wno-array-parameter',
+        '-Wno-dangling-pointer',
     ]
     env['CPPFLAGS'] += ['-D_XOPEN_SOURCE=700', '-U_GNU_SOURCE']
 
     # disable lto for now, since it doesn't work here ('plugin needed to handle lto object')
     # I don't know why it works for libm3, but not for libc.
-    env.remove_flag('CXXFLAGS', '-flto')
-    env.remove_flag('CFLAGS', '-flto')
+    env.remove_flag('CXXFLAGS', '-flto=auto')
+    env.remove_flag('CFLAGS', '-flto=auto')
 
     # files that we only want to have in the full C library
     files = []

@@ -60,6 +60,14 @@ EXTERN_C int sprintf(char *, const char *, ...) {
     return -1;
 }
 
+EXTERN_C char *secure_getenv(const char *) {
+    return NULL;
+}
+
+EXTERN_C unsigned long strtoul(const char *, char **, int) {
+    return 0;
+}
+
 EXTERN_C void *__tls_get_addr(void *) {
     return 0;
 }
@@ -72,4 +80,10 @@ EXTERN_C int pthread_mutex_unlock(void *) {
 }
 EXTERN_C int pthread_once(void *, void (*)(void)) {
     return -1;
+}
+EXTERN_C int pthread_cond_broadcast(void *) {
+    return 0;
+}
+EXTERN_C int pthread_cond_wait(void *, void *) {
+    return 0;
 }
