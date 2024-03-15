@@ -4,12 +4,10 @@ import os
 def build(gen, env):
     env = env.clone()
 
-    isa = 'riscv64' if env['ISA'] == 'riscv' else env['ISA']
-
     env['CPPPATH'] = [
         'src/libs/musl/m3/include',
         'src/libs/musl/m3/include/' + env['ISA'],
-        'src/libs/musl/arch/' + isa,
+        'src/libs/musl/arch/' + env['ISA'],
         'src/libs/musl/arch/generic',
         'src/libs/musl/src/internal',
         'src/libs/musl/src/include',
@@ -62,7 +60,7 @@ def build(gen, env):
         'stat', 'stdio', 'stdlib', 'temp', 'termios', 'thread', 'time', 'unistd',
     ]
     for d in dirs:
-        files += env.glob(gen, 'src/' + d + '/' + isa + '/*')
+        files += env.glob(gen, 'src/' + d + '/' + env['ISA'] + '/*')
         files += env.glob(gen, 'src/' + d + '/*.c')
 
     # directories where we can't use all files
@@ -90,10 +88,10 @@ def build(gen, env):
     simple_files = ['src/env/__environ.c']
     simple_files += ['src/errno/__errno_location.c']
     simple_files += ['src/exit/atexit.c', 'src/exit/exit.c']
-    simple_files += env.glob(gen, 'src/exit/' + isa + '/*')
+    simple_files += env.glob(gen, 'src/exit/' + env['ISA'] + '/*')
     simple_files += ['src/internal/libc.c']
     simple_files += env.glob(gen, 'src/string/*.c')
-    simple_files += env.glob(gen, 'src/string/' + isa + '/*')
+    simple_files += env.glob(gen, 'src/string/' + env['ISA'] + '/*')
     for f in env.glob(gen, 'src/malloc/*.c'):
         filename = os.path.basename(f)
         if filename != 'lite_malloc.c' and filename != 'free.c' and filename != 'realloc.c':
