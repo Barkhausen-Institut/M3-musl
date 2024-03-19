@@ -52,7 +52,7 @@ static const char *syscall_name(long no) {
 #if defined(SYS__llseek)
         case SYS__llseek: return "llseek";
 #endif
-#if defined(SYS__lseek)
+#if defined(SYS_lseek)
         case SYS_lseek: return "lseek";
 #endif
 #if defined(SYS__ftruncate)
@@ -283,7 +283,7 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_readv: res = __m3_readv(a, (const struct iovec *)b, c); break;
         case SYS_write: res = __m3_write(a, (const void *)b, (size_t)c); break;
         case SYS_writev: res = __m3_writev(a, (const struct iovec *)b, c); break;
-#if defined(SYS__lseek)
+#if defined(SYS_lseek)
         case SYS_lseek: res = __m3_lseek(a, b, c); break;
 #endif
 #if defined(SYS__llseek)
