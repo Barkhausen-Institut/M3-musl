@@ -52,12 +52,18 @@ static const char *syscall_name(long no) {
 #if defined(SYS__llseek)
         case SYS__llseek: return "llseek";
 #endif
+#if defined(SYS__lseek)
         case SYS_lseek: return "lseek";
+#endif
+#if defined(SYS__ftruncate)
         case SYS_ftruncate: return "ftruncate";
+#endif
 #if defined(SYS_ftruncate64)
         case SYS_ftruncate64: return "ftruncate";
 #endif
+#if defined(SYS__truncate)
         case SYS_truncate: return "truncate";
+#endif
 #if defined(SYS_truncate64)
         case SYS_truncate64: return "truncate";
 #endif
@@ -65,7 +71,9 @@ static const char *syscall_name(long no) {
 #if defined(SYS_fcntl64)
         case SYS_fcntl64:
 #endif
+#if defined(SYS_fcntl)
         case SYS_fcntl: return "fcntl";
+#endif
 #if defined(SYS_access)
         case SYS_access:
 #endif
@@ -75,12 +83,17 @@ static const char *syscall_name(long no) {
 #if defined(SYS_fstat64)
         case SYS_fstat64:
 #endif
+#if defined(SYS_fstat)
         case SYS_fstat: return "fstat";
+#endif
 #if defined(SYS_stat)
         case SYS_stat: return "stat";
 #endif
 #if defined(SYS_stat64)
         case SYS_stat64: return "stat";
+#endif
+#if defined(SYS_statx)
+        case SYS_statx: return "statx";
 #endif
 #if defined(SYS_fstatat)
         case SYS_fstatat: return "fstat";
@@ -270,7 +283,9 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_readv: res = __m3_readv(a, (const struct iovec *)b, c); break;
         case SYS_write: res = __m3_write(a, (const void *)b, (size_t)c); break;
         case SYS_writev: res = __m3_writev(a, (const struct iovec *)b, c); break;
+#if defined(SYS__lseek)
         case SYS_lseek: res = __m3_lseek(a, b, c); break;
+#endif
 #if defined(SYS__llseek)
         case SYS__llseek: {
             assert(b == 0);
@@ -282,7 +297,9 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #endif
         case SYS_close: res = __m3_close(a); break;
 
+#if defined(SYS_fcntl)
         case SYS_fcntl: res = __m3_fcntl(a, b); break;
+#endif
 #if defined(SYS_fcntl64)
         case SYS_fcntl64: res = __m3_fcntl(a, b); break;
 #endif
@@ -294,7 +311,9 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
         case SYS_fsync: res = __m3_fsync(a); break;
         case SYS_fdatasync: res = __m3_fsync(a); break;
 
+#if defined(SYS_fstat)
         case SYS_fstat: res = __m3_fstat(a, (struct kstat *)b); break;
+#endif
 #if defined(SYS_fstat64)
         case SYS_fstat64: res = __m3_fstat(a, (struct kstat *)b); break;
 #endif
@@ -310,17 +329,26 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
 #if defined(SYS_stat64)
         case SYS_stat64: res = __m3_fstatat(-1, (const char *)a, (struct kstat *)b, 0); break;
 #endif
+#if defined(SYS_statx)
+        case SYS_statx:
+            res = __m3_statx(a, (const char *)b, c, (unsigned int)d, (struct statx *)e);
+            break;
+#endif
 #if defined(SYS_fstatat)
         case SYS_fstatat: res = __m3_fstatat(a, (const char *)b, (struct kstat *)c, d); break;
 #endif
 #if defined(SYS_newfstatat)
         case SYS_newfstatat: res = __m3_fstatat(a, (const char *)b, (struct kstat *)c, d); break;
 #endif
+#if defined(SYS_ftruncate)
         case SYS_ftruncate: res = __m3_ftruncate(a, (off_t)b); break;
+#endif
 #if defined(SYS_ftruncate64)
         case SYS_ftruncate64: res = __m3_ftruncate(a, (off_t)b); break;
 #endif
+#if defined(SYS_truncate)
         case SYS_truncate: res = __m3_truncate((const char *)a, (off_t)b); break;
+#endif
 #if defined(SYS_truncate64)
         case SYS_truncate64: res = __m3_truncate((const char *)a, (off_t)b); break;
 #endif

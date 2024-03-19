@@ -11,7 +11,6 @@ def build(gen, env):
         'src/libs/musl/arch/generic',
         'src/libs/musl/src/internal',
         'src/libs/musl/src/include',
-        'src/libs/musl/src/internal',
         'src/libs/musl/include',
         'src/include',
         env['CROSSDIR'] + '/include/c++/' + env['CROSSVER'],

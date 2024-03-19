@@ -19,6 +19,7 @@
 #    define restrict __restrict
 #endif
 
+#include <bits/syscall.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -41,6 +42,70 @@ struct OpenDir {
 
 static OpenDir open_dirs[m3::FileTable::MAX_FDS];
 
+struct statx {
+    uint32_t stx_mask;
+    uint32_t stx_blksize;
+    uint64_t stx_attributes;
+    uint32_t stx_nlink;
+    uint32_t stx_uid;
+    uint32_t stx_gid;
+    uint16_t stx_mode;
+    uint16_t pad1;
+    uint64_t stx_ino;
+    uint64_t stx_size;
+    uint64_t stx_blocks;
+    uint64_t stx_attributes_mask;
+    struct {
+        int64_t tv_sec;
+        uint32_t tv_nsec;
+        int32_t pad;
+    } stx_atime, stx_btime, stx_ctime, stx_mtime;
+    uint32_t stx_rdev_major;
+    uint32_t stx_rdev_minor;
+    uint32_t stx_dev_major;
+    uint32_t stx_dev_minor;
+    uint64_t spare[14];
+};
+
+static void translate_stat(m3::FileInfo &info, struct statx *statbuf) {
+    statbuf->stx_mask = 0xfffU /* STATX_ALL */;
+    statbuf->stx_blksize = 4096;
+    statbuf->stx_attributes = 0;
+    statbuf->stx_nlink = info.links;
+    statbuf->stx_uid = 0;
+    statbuf->stx_gid = 0;
+    statbuf->stx_mode = info.mode;
+    statbuf->stx_ino = info.inode;
+    statbuf->stx_size = static_cast<uint64_t>(info.size);
+    statbuf->stx_blocks = static_cast<uint64_t>((info.size + 4096 - 1) / 4096);
+    statbuf->stx_attributes_mask = 0;
+    statbuf->stx_dev_major = info.devno;
+    statbuf->stx_dev_minor = 0;
+    statbuf->stx_rdev_major = info.devno;
+    statbuf->stx_rdev_minor = 0;
+    statbuf->stx_atime.tv_sec = static_cast<long>(info.lastaccess);
+    statbuf->stx_atime.tv_nsec = 0;
+    statbuf->stx_mtime.tv_sec = static_cast<long>(info.lastmod);
+    statbuf->stx_mtime.tv_nsec = 0;
+    statbuf->stx_ctime.tv_sec = static_cast<long>(info.lastmod);
+    statbuf->stx_ctime.tv_nsec = 0;
+}
+
+EXTERN_C int __m3_statx(int fd, const char *pathname, int flags, unsigned int,
+                        struct statx *statbuf) {
+    m3::FileInfo info;
+    m3::Errors::Code res;
+    if(flags & 0x1000 /* AT_EMPTY_PATH */)
+        res = __m3c_fstat(fd, &info);
+    else
+        res = __m3c_stat(pathname, &info);
+    if(res != m3::Errors::SUCCESS)
+        return -__m3_posix_errno(res);
+    translate_stat(info, statbuf);
+    return 0;
+}
+
+#if !defined(__riscv) || __riscv_xlen != 32
 static void translate_stat(m3::FileInfo &info, struct kstat *statbuf) {
     statbuf->st_dev = info.devno;
     statbuf->st_ino = info.inode;
@@ -77,6 +142,7 @@ EXTERN_C int __m3_fstatat(int, const char *pathname, struct kstat *statbuf, int)
     translate_stat(info, statbuf);
     return 0;
 }
+#endif
 
 EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count) {
     if(static_cast<size_t>(fd) >= m3::FileTable::MAX_FDS)

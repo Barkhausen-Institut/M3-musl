@@ -49,6 +49,8 @@ EXTERN_C int __m3_fsync(int fd);
 
 // directory syscalls
 EXTERN_C int __m3_fstat(int fd, struct kstat *statbuf);
+EXTERN_C int __m3_statx(int dirfd, const char *pathname, int flags, unsigned int mask,
+                        struct statx *statxbuf);
 EXTERN_C int __m3_fstatat(int dirfd, const char *pathname, struct kstat *statbuf, int flags);
 EXTERN_C ssize_t __m3_getdents64(int fd, void *dirp, size_t count);
 EXTERN_C int __m3_mkdirat(int dirfd, const char *pathname, mode_t mode);
