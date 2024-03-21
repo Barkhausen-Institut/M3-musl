@@ -1,9 +1,8 @@
 import os
+from ninjapie import BuildPath
 
 
-def build(gen, env):
-    env = env.clone()
-
+def prepare(env):
     env['CPPPATH'] = [
         'src/libs/musl/m3/include',
         'src/libs/musl/m3/include/' + env['ISA'],
@@ -48,6 +47,11 @@ def build(gen, env):
     env.remove_flag('CXXFLAGS', '-flto=auto')
     env.remove_flag('CFLAGS', '-flto=auto')
 
+
+def build(gen, env):
+    env = env.clone()
+    prepare(env)
+
     # files that we only want to have in the full C library
     files = []
 
@@ -85,10 +89,8 @@ def build(gen, env):
     simple_files = ['src/env/__environ.c']
     simple_files += ['src/errno/__errno_location.c']
     simple_files += ['src/exit/atexit.c', 'src/exit/exit.c']
-    simple_files += env.glob(gen, 'src/exit/' + env['ISA'] + '/*')
     simple_files += ['src/internal/libc.c']
     simple_files += env.glob(gen, 'src/string/*.c')
-    simple_files += env.glob(gen, 'src/string/' + env['ISA'] + '/*')
     for f in env.glob(gen, 'src/malloc/*.c'):
         filename = os.path.basename(f)
         if filename != 'lite_malloc.c' and filename != 'free.c' and filename != 'realloc.c':
@@ -99,19 +101,23 @@ def build(gen, env):
         'm3/pthread.c', 'm3/dl.cc', 'm3/tls.cc'
     ]
 
-    # disallow FPU instructions, because we use the library for e.g. TileMux as well
-    sf_env = env.clone()
-    sf_env.soft_float()
-    lib = sf_env.static_lib(gen, out='simplecsf', ins=simple_files + ['m3/simple.cc'])
-    sf_env.install(gen, sf_env['LIBDIR'], lib)
+    for isa in env['ALL_ISAS']:
+        for sf in [True, False]:
+            tenv = env.new(isa, sf)
+            prepare(tenv)
 
-    # simple objects with FPU instructions
-    simple_objs = env.objs(gen, simple_files)
+            sfiles = simple_files.copy()
+            sfiles += tenv.glob(gen, 'src/exit/' + isa + '/*')
+            sfiles += tenv.glob(gen, 'src/string/' + isa + '/*')
 
-    # simple C library without dependencies (but also no stdio, etc.)
-    lib = env.static_lib(gen, out='simplec', ins=simple_objs + ['m3/simple.cc'])
-    env.install(gen, env['LIBDIR'], lib)
+            objs = tenv.objs(gen, ins=sfiles)
+            lib = tenv.static_lib(gen, out='simplec-' + isa + '-' + str(sf),
+                                  ins=objs + ['m3/simple.cc'])
+            out = BuildPath(tenv['LIBDIR'] + '/libsimplec.a')
+            tenv.install_as(gen, out, lib)
+            if isa == env['ISA'] and not sf:
+                our_simple_objs = objs
 
     # full C library
-    lib = env.static_lib(gen, out='c', ins=files + simple_objs)
+    lib = env.static_lib(gen, out='c', ins=files + our_simple_objs)
     env.install(gen, env['LIBDIR'], lib)
