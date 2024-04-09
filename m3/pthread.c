@@ -25,3 +25,18 @@ void *__copy_tls(unsigned char *mem) {
     return NULL;
 }
 
+#if defined(__riscv) && __riscv_xlen == 32
+weak int pthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *) {
+	return 0;
+}
+weak int pthread_mutexattr_init(pthread_mutexattr_t *) {
+	return 0;
+}
+weak int pthread_mutexattr_settype(pthread_mutexattr_t *, int) {
+	return 0;
+}
+weak int pthread_mutexattr_destroy(pthread_mutexattr_t *) {
+	return 0;
+}
+#endif
+
