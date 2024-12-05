@@ -39,6 +39,7 @@ def prepare(env):
         '-Wno-cast-function-type',
         '-Wno-array-parameter',
         '-Wno-dangling-pointer',
+        '-Wno-calloc-transposed-args',
     ]
     env['CPPFLAGS'] += ['-D_XOPEN_SOURCE=700', '-U_GNU_SOURCE']
 
