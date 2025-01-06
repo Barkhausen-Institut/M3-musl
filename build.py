@@ -16,6 +16,8 @@ def prepare(env):
         env['CROSSDIR'] + '/include/c++/' + env['CROSSVER'] + '/' + env['CROSS'][:-1],
     ]
 
+    # without this flag, GCC might replace code using/with LibC functions
+    env['CFLAGS'] += ['-ffreestanding']
     # disable the warnings that musl produces
     env['CFLAGS'] += [
         '-Wno-parentheses',
