@@ -1,19 +1,24 @@
+#include <base/mem/InPlaceAreaManager.h>
+
 #include <m3/Compat.h>
 
 #include <assert.h>
+#include <debug.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/mman.h>
 
-struct FreeMem {
-    size_t size;
-    FreeMem *next;
-};
+// use function-local static object to prevent that C++ wants to construct a global object during
+// initialization. The latter does not work, because the heap is used *during* this initialization
+// and the area manager is on-demand initialized in the first mmap call.
+static m3::InPlaceAreaManager &areas() {
+    static m3::InPlaceAreaManager mng;
+    return mng;
+}
 
 extern void *_bss_end;
 static uintptr_t heap_begin;
 static uintptr_t heap_end;
-static FreeMem *free_list;
 
 EXTERN_C int __m3_heap_brk(uintptr_t) {
     // if this fails, the allocator will fall back to mmap
@@ -28,29 +33,18 @@ EXTERN_C void __m3_heap_get_area(uintptr_t *begin, uintptr_t *end) {
 EXTERN_C void __m3_heap_set_area(uintptr_t begin, uintptr_t end) {
     heap_begin = begin;
     heap_end = end;
-    free_list = reinterpret_cast<FreeMem *>(heap_begin);
-    free_list->size = end - begin;
-    free_list->next = nullptr;
+    areas().set_region(reinterpret_cast<void *>(begin), end - begin);
 }
 
 EXTERN_C uintptr_t __m3_heap_get_end() {
     return heap_end;
 }
 
-EXTERN_C void __m3_heap_append(size_t pages) {
-    FreeMem *cur = free_list;
-    bool found = false;
-    while(cur) {
-        if(reinterpret_cast<uintptr_t>(cur) + cur->size == reinterpret_cast<uintptr_t>(heap_end)) {
-            cur->size += pages * PAGE_SIZE;
-            found = true;
-            break;
-        }
-        cur = cur->next;
-    }
-    if(!found)
-        abort();
-    heap_end += pages * PAGE_SIZE;
+EXTERN_C bool __m3_heap_append(size_t pages) {
+    bool res = areas().append(pages * PAGE_SIZE);
+    if(res)
+        heap_end += pages * PAGE_SIZE;
+    return res;
 }
 
 EXTERN_C void *__m3_heap_mmap(void *start, size_t len, int, int, int, off_t) {
@@ -70,24 +64,8 @@ EXTERN_C void *__m3_heap_mmap(void *start, size_t len, int, int, int, off_t) {
         __m3_heap_set_area(begin, end);
     }
 
-    void *res = nullptr;
-    FreeMem *cur = free_list;
-    while(cur) {
-        if(cur->size >= len) {
-            if(cur->size == len)
-                free_list = cur->next;
-            else {
-                free_list = reinterpret_cast<FreeMem *>(reinterpret_cast<uintptr_t>(cur) + len);
-                free_list->size = cur->size - len;
-                free_list->next = cur->next;
-            }
-            res = cur;
-            break;
-        }
-        cur = cur->next;
-    }
-
-    if(!res)
+    void *res = areas().allocate(len);
+    if(res == nullptr)
         return MAP_FAILED;
 
     // musl expects the memory to be initialized; we pass the UNINIT flag for the heap mapping to
@@ -110,9 +88,6 @@ EXTERN_C int __m3_heap_madvise(void *, size_t, int) {
 }
 
 EXTERN_C int __m3_heap_munmap(void *ptr, size_t size) {
-    FreeMem *f = reinterpret_cast<FreeMem *>(ptr);
-    f->size = size;
-    f->next = free_list;
-    free_list = f;
+    areas().free(ptr, size);
     return 0;
 }
