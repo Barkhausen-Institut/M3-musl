@@ -21,6 +21,11 @@ typedef void *FILE;
 
 EXTERN_C FILE *const stderr = NULL;
 
+EXTERN_C _Noreturn void __assert_fail(UNUSED const char *expr, UNUSED const char *file,
+                                      UNUSED int line, UNUSED const char *func) {
+    abort();
+}
+
 EXTERN_C int fputs(const char *str, FILE *) {
     DebugBuf db;
     debug_new(&db);
