@@ -40,11 +40,9 @@ EXTERN_C uintptr_t __m3_heap_get_end() {
     return heap_end;
 }
 
-EXTERN_C bool __m3_heap_append(size_t pages) {
-    bool res = areas().append(pages * PAGE_SIZE);
-    if(res)
-        heap_end += pages * PAGE_SIZE;
-    return res;
+EXTERN_C void __m3_heap_append(size_t pages) {
+    areas().append(pages * PAGE_SIZE);
+    heap_end += pages * PAGE_SIZE;
 }
 
 EXTERN_C void *__m3_heap_mmap(void *start, size_t len, int, int, int, off_t) {
