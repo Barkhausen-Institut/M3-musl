@@ -166,7 +166,7 @@ EXTERN_C int __m3_accept(int fd, struct sockaddr *addr, socklen_t *addrlen) {
     CompatEndpoint ep;
     m3::Errors::Code res = __m3c_accept_stream(sockets[fd].listen_port, &cfd, &ep);
     if(res != m3::Errors::SUCCESS)
-        return res;
+        return -__m3_posix_errno(res);
 
     assert(sockets[cfd].type == INVALID);
     sockets[cfd].type = CompatSock::STREAM;
