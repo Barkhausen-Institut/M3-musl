@@ -105,3 +105,4 @@ EXTERN_C int __m3_nanosleep(const struct timespec *req, struct timespec *rem);
 // misc
 EXTERN_C int __m3_uname(struct utsname *buf);
 EXTERN_C int __m3_ioctl(int fd, unsigned long request, ...);
+EXTERN_C ssize_t __m3_getrandom(void *buf, size_t buflen, unsigned int flags);

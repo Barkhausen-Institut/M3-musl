@@ -183,6 +183,8 @@ static const char *syscall_name(long no) {
         case SYS_clock_nanosleep_time64: return "nanosleep";
 #endif
 
+        case SYS_getrandom: return "getrandom";
+
         case SYS_uname: return "uname";
         case SYS_ioctl: return "ioctl";
 
@@ -453,6 +455,8 @@ EXTERN_C long __syscall6(long n, long a, long b, long c, long d, long e, long f)
             res = __m3_nanosleep((const struct timespec *)c, (struct timespec *)d);
             break;
 #endif
+
+        case SYS_getrandom: res = __m3_getrandom((void *)a, (size_t)b, (unsigned int)c); break;
 
         case SYS_uname: res = __m3_uname((struct utsname *)a); break;
         case SYS_ioctl: res = __m3_ioctl(a, (unsigned long)b, c, d, e, f); break;

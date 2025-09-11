@@ -60,3 +60,8 @@ EXTERN_C int __m3_ioctl(int fd, unsigned long request, ...) {
     va_end(ap);
     return 0;
 }
+
+EXTERN_C ssize_t __m3_getrandom(void *buf, size_t buflen, unsigned int) {
+    memset(buf, 0, buflen);
+    return static_cast<ssize_t>(buflen);
+}
