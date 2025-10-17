@@ -87,7 +87,7 @@ typedef _Reg register_t;
 #endif
 
 #if defined(__NEED_time_t) && !defined(__DEFINED_time_t)
-typedef _Int64 time_t;
+typedef long time_t;
 #    define __DEFINED_time_t
 #endif
 
